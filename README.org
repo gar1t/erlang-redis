@@ -1,0 +1,29 @@
+# -*-org-*-
+
+erlang-redis is an Erlang binding for Redis.
+
+* Goals
+
+- Bug free
+
+- Complete API implementation
+
+- Easy to maintain
+
+- Performant
+
+* Approach
+
+- redis_client provides an Erlang interface to the Redis protocol spec
+
+- redis provides a complete user facing Redis API
+
+- redis_cmd responsible for sending outbound commands to Redis
+
+- redis_reply responsible for handling replies from Redis
+
+* Status
+
+Very early stage - bindings are not useful at this time.
+
+However, basic protocol support is in place.
