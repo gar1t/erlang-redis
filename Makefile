@@ -1,15 +1,19 @@
+TESTS=""
+
 compile:
 	./rebar compile
 
 .PHONY: test
-
-TESTS=""
 test:
 ifeq ($(TESTS), "")
 	./rebar -j1 eunit
 else
 	./rebar -j1 eunit suite=$(TESTS)
 endif
+
+.PHONY: doc
+doc:
+	./rebar doc
 
 clean:
 	./rebar clean
