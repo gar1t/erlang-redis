@@ -2,16 +2,17 @@
 
 -behaviour(gen_server).
 
--export([start_link/2, request/2, request/3]).
+-export([start_link/2, request/2, request/3, quit/1, quit/2]).
 
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2,
          terminate/2, code_change/3]).
 
 -define(SERVER, ?MODULE). 
 
--record(state, {socket, requests, reply}).
+-record(state, {socket, requests, reply, stopping}).
 
 -define(DEFAULT_REQUEST_TIMEOUT, 5000).
+-define(DEFAULT_STOP_TIMEOUT, 5000).
 
 %%%===================================================================
 %%% API
@@ -26,6 +27,12 @@ request(Client, Request) ->
 request(Client, {_Cmd, _Args}=Request, Timeout) ->
     gen_server:call(Client, {request, Request}, Timeout).
 
+quit(Client) ->
+    quit(Client, ?DEFAULT_STOP_TIMEOUT).
+
+quit(Client, Timeout) ->
+    gen_server:call(Client, quit, Timeout).
+
 %%%===================================================================
 %%% gen_server callbacks
 %%%===================================================================
@@ -38,8 +45,12 @@ init([Host, Port]) ->
             {stop, {connect, Err}}
     end.
 
+handle_call(_, _From, #state{stopping=true}=State) ->
+    {reply, {error, stopping}, State};
 handle_call({request, {_Cmd, _Args}=Request}, From, State) ->
-    {noreply, send_request(Request, From, State)}.
+    {noreply, send_request(Request, From, State)};
+handle_call(quit, From, State) ->
+    {noreply, send_request({"QUIT", []}, From, State#state{stopping=true})}.
 
 handle_cast(_Msg, State) ->
     {noreply, State}.
@@ -51,7 +62,11 @@ handle_info({tcp, Socket, Data}, #state{reply=Reply}=State) ->
             {noreply, reply(Value, State#state{reply=Next})};
         {pending, Next} ->
             {noreply, State#state{reply=Next}}
-    end.
+    end;
+handle_info({tcp_closed, _}, #state{stopping=true}=State) ->
+    {stop, normal, State};
+handle_info({tcp_closed, Socket}, State) ->
+    {stop, {connection_closed, Socket}, State}.
 
 terminate(_Reason, _State) ->
     ok.
@@ -84,5 +99,6 @@ reply(Value, #state{requests=Requests0}=State) ->
 erlang_value({ok, Int}) when is_integer(Int) -> {ok, Int}; 
 erlang_value({ok, Bin}) when is_binary(Bin) -> {ok, Bin};
 erlang_value({ok, "OK"}) -> ok;
-erlang_value(undefined) -> undefined;
-erlang_value({error, "ERR " ++ Msg}) -> {error, Msg}.
+erlang_value({ok, List}) when is_list(List) -> {ok, List};
+erlang_value({error, "ERR " ++ Msg}) -> {error, Msg};
+erlang_value(undefined) -> undefined.

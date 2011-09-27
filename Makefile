@@ -4,7 +4,7 @@ compile:
 	./rebar compile
 
 .PHONY: test
-test:
+test: compile
 ifeq ($(TESTS), "")
 	./rebar -j1 eunit
 else
