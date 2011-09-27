@@ -22,7 +22,7 @@ start_link(Host, Port) ->
     gen_server:start_link({local, ?SERVER}, ?MODULE, [Host, Port], []).
 
 request(Client, Request) ->
-    request(Client, Request, ?DEFAULT_REQUEST_TIMEOUT).
+    request(Client, validate_request(Request), ?DEFAULT_REQUEST_TIMEOUT).
 
 request(Client, {_Cmd, _Args}=Request, Timeout) ->
     gen_server:call(Client, {request, Request}, Timeout).
@@ -77,6 +77,22 @@ code_change(_OldVsn, State, _Extra) ->
 %%%===================================================================
 %%% Internal functions
 %%%===================================================================
+
+validate_request({Cmd, Args}) ->
+    {validate_cmd(Cmd), lists:map(fun validate_arg/1, Args)}.
+
+validate_cmd(Cmd) when is_list(Cmd) -> Cmd;
+validate_cmd(Cmd) when is_binary(Cmd) -> Cmd;
+validate_cmd(Cmd) -> error({badcmd, Cmd}).
+
+validate_arg(I) when is_integer(I) ->
+    list_to_binary(integer_to_list(I));
+validate_arg(S) ->
+    try iolist_to_binary(S) of
+        Bin -> Bin
+    catch
+        error:badarg -> error({badarg, S})
+    end.
 
 init_state(Socket) ->
     #state{socket=Socket,

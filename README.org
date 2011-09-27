@@ -12,6 +12,8 @@ erlang-redis is an Erlang binding for Redis.
 
 - Performant
 
+- Idiomatic Erlang
+
 * Approach
 
 - redis_client provides an Erlang interface to the Redis protocol spec
@@ -22,8 +24,22 @@ erlang-redis is an Erlang binding for Redis.
 
 - redis_reply responsible for handling replies from Redis
 
+** API
+
+API assumes success where reasonable, so most functions return results directly
+rather than tagging them in 'ok' tuples. Errors are communicated as exceptions
+rather than return values.
+
+** Variable Length Command Args
+
+Several Redis commands accept variable length arguments (e.g. SADD, DEL,
+etc.). This is not idiomatic (or even typical) in Erlang. In these cases, we
+use additional "m" (multiple) variants to accomodate (e.g. smadd, mdel, etc).
+
 * Status
 
 Very early stage - bindings are not useful at this time.
 
 However, basic protocol support is in place.
+
+
