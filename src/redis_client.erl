@@ -22,10 +22,10 @@ start_link(Host, Port) ->
     gen_server:start_link({local, ?SERVER}, ?MODULE, [Host, Port], []).
 
 request(Client, Request) ->
-    request(Client, validate_request(Request), ?DEFAULT_REQUEST_TIMEOUT).
+    request(Client, Request, ?DEFAULT_REQUEST_TIMEOUT).
 
 request(Client, {_Cmd, _Args}=Request, Timeout) ->
-    gen_server:call(Client, {request, Request}, Timeout).
+    gen_server:call(Client, {request, validate_request(Request)}, Timeout).
 
 quit(Client) ->
     quit(Client, ?DEFAULT_STOP_TIMEOUT).

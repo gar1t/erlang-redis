@@ -35,111 +35,113 @@
          srem/3,
          smrem/3,
          sismember/3,
-         smembers/2]).
-
-%% TODO:
-%%
-%% BGREWRITEAOF
-%% BGSAVE
-%% BLPOP
-%% BRPOP
-%% BRPOPLPUSH
-%% CONFIG GET
-%% CONFIG SET
-%% CONFIG RESETAT
-%% DEBUG OBJECT
-%% DEBUG SEGFAULT
-%% DISCARD
-%% EXEC
-%% EXPIRE
-%% EXPIREAT
-%% FLUSHALL
-%% GETBIT
-%% GETRANGE
-%% GETSET
-%% HDEL
-%% HEXISTS
-%% HGET
-%% HGETALL
-%% HINCRBY
-%% HKEYS
-%% HLEN
-%% HMGET
-%% HMSET
-%% HSET
-%% HSETNX
-%% HVALS
-%% INFO
-%% LASTSAVE
-%% LINDEX
-%% LINSERT
-%% LLEN
-%% LPOP
-%% LPUSH
-%% LPUSHX
-%% LRANGE
-%% LREM
-%% LSET
-%% LTRIM
-%% MGET
-%% MONITOR
-%% MOVE
-%% MSET
-%% MSETNX
-%% MULTI
-%% OBJECT
-%% PERSIST
-%% PSUBSCRIBE
-%% PUBLISH
-%% PUNSUBSCRIBE
-%% RANDOMKEY
-%% RPOP
-%% RPOPLPUSH
-%% RPUSH
-%% RPUSHX
-%% SAVE
-%% SCARD
-%% SDIFF
-%% SDIFFSTORE
-%% SELECT
-%% SETBIT
-%% SETEX
-%% SETRANGE
-%% SHUTDOWN    %% can use this to terminate test server?
-%% SINTER
-%% SINTERSTORE
-%% SLAVEOF
-%% SLOWLOG
-%% SMOVE
-%% SORT
-%% SPOP
-%% SRANDMEMBER[5~
-%% STRLEN
-%% SUBSCRIBE
-%% SUNINION
-%% SUNIONSTORE
-%% SYNC
-%% TTL
-%% TYPE
-%% UNSUBSCRIBE
-%% UNWATCH
-%% WATCH
-%% ZADD
-%% ZCARD
-%% ZCOUNT
-%% ZINCRBY
-%% ZINTERSTORE
-%% ZRANGE
-%% ZRANGEBYSCORE
-%% ZRANK
-%% ZREM
-%% ZREMRANKGEBYRANK
-%% ZREMRANGEBYSCORE
-%% ZREVRANGE
-%% ZREVRANGEBYSCORE
-%% ZREVRANK
-%% ZSCORE
-%% ZUNIONSTORE
+         smembers/2,
+         bgrewriteaof/1,
+         bgsave/1,
+         lastsave/1,
+         lpush/3,
+         lpushx/3,
+         mlpush/3,
+         lpop/2,
+         blpop/3,
+         bmlpop/3,
+         lindex/3,
+         linsert/5,
+         llen/2,
+         lrange/4,
+         lrem/4,
+         lset/4,
+         ltrim/4,
+         rpush/3,
+         rpushx/3,
+         mrpush/3,
+         rpop/2,
+         brpop/3,
+         bmrpop/3
+         %% BRPOPLPUSH
+         %% RPOPLPUSH
+         %% CONFIG GET
+         %% CONFIG SET
+         %% CONFIG RESETAT
+         %% DEBUG OBJECT
+         %% DEBUG SEGFAULT
+         %% DISCARD
+         %% EXEC
+         %% EXPIRE
+         %% EXPIREAT
+         %% FLUSHALL
+         %% GETBIT
+         %% GETRANGE
+         %% GETSET
+         %% HDEL
+         %% HEXISTS
+         %% HGET
+         %% HGETALL
+         %% HINCRBY
+         %% HKEYS
+         %% HLEN
+         %% HMGET
+         %% HMSET
+         %% HSET
+         %% HSETNX
+         %% HVALS
+         %% INFO
+         %% MGET
+         %% MONITOR
+         %% MOVE
+         %% MSET
+         %% MSETNX
+         %% MULTI
+         %% OBJECT
+         %% PERSIST
+         %% PSUBSCRIBE
+         %% PUBLISH
+         %% PUNSUBSCRIBE
+         %% RANDOMKEY
+         %% SAVE
+         %% SCARD
+         %% SDIFF
+         %% SDIFFSTORE
+         %% SELECT
+         %% SETBIT
+         %% SETEX
+         %% SETRANGE
+         %% SHUTDOWN    %% can use this to terminate test server?
+         %% SINTER
+         %% SINTERSTORE
+         %% SLAVEOF
+         %% SLOWLOG
+         %% SMOVE
+         %% SORT
+         %% SPOP
+         %% SRANDMEMBER
+         %% STRLEN
+         %% SUBSCRIBE
+         %% SUNINION
+         %% SUNIONSTORE
+         %% SYNC
+         %% TTL
+         %% TYPE
+         %% UNSUBSCRIBE
+         %% UNWATCH
+         %% WATCH
+         %% ZADD
+         %% ZCARD
+         %% ZCOUNT
+         %% ZINCRBY
+         %% ZINTERSTORE
+         %% ZRANGE
+         %% ZRANGEBYSCORE
+         %% ZRANK
+         %% ZREM
+         %% ZREMRANKGEBYRANK
+         %% ZREMRANGEBYSCORE
+         %% ZREVRANGE
+         %% ZREVRANGEBYSCORE
+         %% ZREVRANK
+         %% ZSCORE
+         %% ZUNIONSTORE
+        ]).
 
 -define(DEFAULT_HOST, "127.0.0.1").
 -define(DEFAULT_PORT, 6379).
@@ -147,6 +149,7 @@
 -define(ok(Val),
         case Val of
             ok -> ok;
+            {ok, _} -> ok;
             {error, Err} -> error(Err)
         end).
 
@@ -162,6 +165,13 @@
             {ok, Term} -> Term;
             {error, Err} -> error(Err)
         end).
+
+-define(maybe_term(Result),
+    case Result of
+        {ok, Value} -> {ok, Value};
+        undefined -> undefined;
+        {error, Err} -> error(Err)
+    end).
 
 %%%===================================================================
 %%% Public API
@@ -246,11 +256,7 @@ dbsize(Client) ->
 %%--------------------------------------------------------------------
 
 get(Client, Key) ->
-    case redis_client:request(Client, {"GET", [Key]}) of
-        {ok, Val} -> {ok, Val};
-        undefined -> undefined;
-        {error, Err} -> error(Err)
-    end.
+    ?maybe_term(redis_client:request(Client, {"GET", [Key]})).
 
 %%--------------------------------------------------------------------
 %% @doc Set key to hold the string value.
@@ -652,6 +658,378 @@ sismember(Client, Key, Member) ->
 smembers(Client, Key) ->
     ?term(redis_client:request(Client, {"SMEMBERS", [Key]})).
 
+%%--------------------------------------------------------------------
+%% @doc Rewrites the append-only file to reflect the current dataset
+%% in memory.
+%%
+%% Redis command: [http://redis.io/commands/bgrewriteaof BGREWRITEAOF]
+%%
+%% @spec bgrewriteaof(Client) -> ok
+%% Client = client()
+%% @end
+%%--------------------------------------------------------------------
+
+bgrewriteaof(Client) ->
+    ?ok(redis_client:request(Client, {"BGREWRITEAOF", []})).
+
+%%--------------------------------------------------------------------
+%% @doc Save the DB in background.
+%%
+%% Redis forks, the parent continues to server the clients, the child
+%% saves the DB on disk then exit. A client my be able to check if
+%% the operation succeeded using `lastsave/1'.
+%%
+%% Redis command: [http://redis.io/commands/bgsave BGSAVE]
+%%
+%% @spec bgsave(Client) -> ok
+%% Client = client()
+%% @end
+%%--------------------------------------------------------------------
+
+bgsave(Client) ->
+    ?ok(redis_client:request(Client, {"BGSAVE", []})).
+
+%%--------------------------------------------------------------------
+%% @doc Return the UNIX TIME of the last DB save executed with success.
+%%
+%% Redis command: [http://redis.io/commands/lastsave LASTSAVE]
+%%
+%% @spec lastsave(Client) -> integer()
+%% Client = client()
+%% @end
+%%--------------------------------------------------------------------
+
+lastsave(Client) ->
+    ?term(redis_client:request(Client, {"LASTSAVE", []})).
+
+%%--------------------------------------------------------------------
+%% @doc Insert a value at the head of a list.
+%%
+%% Returns the length of the list after the push.
+%%
+%% Redis command: [http://redis.io/commands/lpush LPUSH]
+%%
+%% @spec lpush(Client, Key, Value) -> integer()
+%% Client = client()
+%% Key = key()
+%% Value = value()
+%% @end
+%%--------------------------------------------------------------------
+
+lpush(Client, Key, Value) ->
+    ?term(redis_client:request(Client, {"LPUSH", [Key, Value]})).
+
+%%--------------------------------------------------------------------
+%% @doc Insert a value at the head of a list only if Key exists.
+%%
+%% Returns the length of the list after the push.
+%%
+%% Redis command: [http://redis.io/commands/lpushx LPUSHX]
+%%
+%% @spec lpushx(Client, Key, Value) -> integer()
+%% Client = client()
+%% Key = key()
+%% Value = value()
+%% @end
+%%--------------------------------------------------------------------
+
+lpushx(Client, Key, Value) ->
+    ?term(redis_client:request(Client, {"LPUSHX", [Key, Value]})).
+
+%%--------------------------------------------------------------------
+%% @doc Inserts multiple values at the head of a list.
+%%
+%% Returns the length of the list after the push.
+%%
+%% Redis command: [http://redis.io/commands/lpush LPUSH]
+%%
+%% @spec mlpush(Client, Key, Values) -> integer()
+%% Client = client()
+%% Key = key()
+%% Values = [value()]
+%% @end
+%%--------------------------------------------------------------------
+
+mlpush(Client, Key, Values) ->
+    ?term(redis_client:request(Client, {"LPUSH", [Key|Values]})).
+
+%%--------------------------------------------------------------------
+%% @doc Removes and returns the first element of a list.
+%%
+%% Redis command: [http://redis.io/commands/lpop LPOP]
+%%
+%% @spec lpop(Client, Key) -> {ok, Value} | undefined
+%% Client = client()
+%% Key = key()
+%% Value = stored_value()
+%% @end
+%%--------------------------------------------------------------------
+
+lpop(Client, Key) ->
+    ?maybe_term(redis_client:request(Client, {"LPOP", [Key]})).
+
+%%--------------------------------------------------------------------
+%% @doc Blocking version of `lpop'.
+%%
+%% Redis command: [http://redis.io/commands/blpop BLPOP]
+%%
+%% @spec blpop(Client, Key, Timeout) -> {ok, Value} | undefined
+%% Client = client()
+%% Key = key()
+%% Timeout = integer()
+%% Value = stored_value()
+%% @end
+%%--------------------------------------------------------------------
+
+blpop(Client, Key, Timeout) ->
+    ?maybe_term(redis_client:request(
+                  Client, {"BLPOP", [Key, Timeout]},
+                  request_timeout(Timeout))).
+
+%%--------------------------------------------------------------------
+%% @doc Version of `mlpop' that supports multiple keys. Keys are
+%% checked in the order given.
+%%
+%% Redis command: [http://redis.io/commands/blpop BLPOP]
+%%
+%% @spec bmlpop(Client, Keys, Timeout) -> {ok, Value} | undefined
+%% Client = client()
+%% Keys = [key()]
+%% Timeout = integer()
+%% Value = stored_value()
+%% @end
+%%--------------------------------------------------------------------
+
+bmlpop(Client, Keys, Timeout) ->
+    ?maybe_term(redis_client:request(
+                  Client, {"BLPOP", Keys ++ [Timeout]},
+                  request_timeout(Timeout))).
+
+%%--------------------------------------------------------------------
+%% @doc Returns the value at an indexed location in a list or undefined
+%% if the item isn't in the list.
+%%
+%% Index starts from the left at position 0.
+%%
+%% Redis command: [http://redis.io/commands/lindex LINDEX]
+%%
+%% @spec lindex(Client, Key, Index) -> {ok, Value} | undefined
+%% Client = client()
+%% Key = key()
+%% Index = integer()
+%% Value = stored_value()
+%% @end
+%%--------------------------------------------------------------------
+
+lindex(Client, Key, Index) ->
+    ?maybe_term(redis_client:request(Client, {"LINDEX", [Key, Index]})).
+
+%%--------------------------------------------------------------------
+%% @doc Inserts a value before or after a reference value pivot.
+%%
+%% Returns the length of the list after the operation or false if pivot
+%% does not exist.
+%%
+%% Redis command: [http://redis.io/commands/linsert LINSERT]
+%%
+%% @spec linsert(Client, Key, Where, Pivot, Value) -> integer() | false
+%% Client = client()
+%% Key = key()
+%% Where = before | after
+%% Pivot = value()
+%% Value = value()
+%% @end
+%%--------------------------------------------------------------------
+
+linsert(Client, Key, Where, Pivot, Value) ->
+    case redis_client:request(
+           Client, {"LINSERT", [Key, where_arg(Where), Pivot, Value]}) of
+        {ok, -1} -> false;
+        {ok, Count} -> Count;
+        {error, Err} -> error(Err)
+    end.
+
+%%--------------------------------------------------------------------
+%% @doc Get the length of a list.
+%%
+%% Redis command: [http://redis.io/commands/llen LLEN]
+%%
+%% @spec llen(Client, Key) -> integer()
+%% Client = client()
+%% Key = key()
+%% @end
+%%--------------------------------------------------------------------
+
+llen(Client, Key) ->
+    ?term(redis_client:request(Client, {"LLEN", [Key]})).
+
+%%--------------------------------------------------------------------
+%% @doc Returns the specified elements of the list at Key.
+%%
+%% Redis command: [http://redis.io/commands/lrange LRANGE]
+%%
+%% @spec lrange(Client, Key, Start, Stop) -> Values
+%% @end
+%%--------------------------------------------------------------------
+
+lrange(Client, Key, Start, Stop) ->
+    ?term(redis_client:request(Client, {"LRANGE", [Key, Start, Stop]})).
+
+%%--------------------------------------------------------------------
+%% @doc Removes the first Count elements equal to Value from a list.
+%%
+%% Returns the number of elements removed from the list.
+%%
+%% Redis command: [http://redis.io/commands/lrem LREM]
+%%
+%% @spec lrem(Client, Key, Count, Value) -> integer()
+%% Client = client()
+%% Key = key()
+%% Count = integer()
+%% Value = value()
+%% @end
+%%--------------------------------------------------------------------
+
+lrem(Client, Key, Count, Value) ->
+    ?term(redis_client:request(Client, {"LREM", [Key, Count, Value]})).
+
+%%--------------------------------------------------------------------
+%% @doc Sets the list element at index to value.
+%%
+%% Redis command: [http://redis.io/commands/lset LSET]
+%%
+%% @spec lset(Client, Key, Index, Value) -> ok
+%% Client = client()
+%% Key = key()
+%% Index = integer()
+%% Value = value()
+%% @end
+%%--------------------------------------------------------------------
+
+lset(Client, Key, Index, Value) ->
+    ?ok(redis_client:request(Client, {"LSET", [Key, Index, Value]})).
+
+%%--------------------------------------------------------------------
+%% @doc Trim an existing list to cointain only the specified range.
+%%
+%% Redis command: [http://redis.io/commands/ltrim LTRIM]
+%%
+%% @spec ltrim(Client, Key, Start, Stop) -> ok
+%% @end
+%%--------------------------------------------------------------------
+
+ltrim(Client, Key, Start, Stop) ->
+    ?ok(redis_client:request(Client, {"LTRIM", [Key, Start, Stop]})).
+
+%%--------------------------------------------------------------------
+%% @doc Insert a value at the end of a list.
+%%
+%% Returns the length of the list after the push.
+%%
+%% Redis command: [http://redis.io/commands/rpush RPUSH]
+%%
+%% @spec rpush(Client, Key, Value) -> integer()
+%% Client = client()
+%% Key = key()
+%% Value = value()
+%% @end
+%%--------------------------------------------------------------------
+
+rpush(Client, Key, Value) ->
+    ?term(redis_client:request(Client, {"RPUSH", [Key, Value]})).
+
+%%--------------------------------------------------------------------
+%% @doc Insert a value at the end of a list only if Key exists.
+%%
+%% Returns the length of the list after the push.
+%%
+%% Redis command: [http://redis.io/commands/rpushx RPUSHX]
+%%
+%% @spec rpushx(Client, Key, Value) -> integer()
+%% Client = client()
+%% Key = key()
+%% Value = value()
+%% @end
+%%--------------------------------------------------------------------
+
+rpushx(Client, Key, Value) ->
+    ?term(redis_client:request(Client, {"RPUSHX", [Key, Value]})).
+
+%%--------------------------------------------------------------------
+%% @doc Inserts multiple values at the end of a list.
+%%
+%% Returns the length of the list after the push.
+%%
+%% Redis command: [http://redis.io/commands/rpush RPUSH]
+%%
+%% @spec mrpush(Client, Key, Values) -> integer()
+%% Client = client()
+%% Key = key()
+%% Values = [value()]
+%% @end
+%%--------------------------------------------------------------------
+
+mrpush(Client, Key, Values) ->
+    ?term(redis_client:request(Client, {"RPUSH", [Key|Values]})).
+
+%%--------------------------------------------------------------------
+%% @doc Removes and returns the last element of a list.
+%%
+%% Redis command: [http://redis.io/commands/rpop RPOP]
+%%
+%% @spec rpop(Client, Key) -> {ok, Value} | undefined
+%% Client = client()
+%% Key = key()
+%% Value = stored_value()
+%% @end
+%%--------------------------------------------------------------------
+
+rpop(Client, Key) ->
+    ?maybe_term(redis_client:request(Client, {"RPOP", [Key]})).
+
+%%--------------------------------------------------------------------
+%% @doc Blocking version of `rpop'.
+%%
+%% Redis command: [http://redis.io/commands/brpop BRPOP]
+%%
+%% @spec brpop(Client, Key, Timeout) -> {ok, Value} | undefined
+%% Client = client()
+%% Key = key()
+%% Timeout = integer()
+%% Value = stored_value()
+%% @end
+%%--------------------------------------------------------------------
+
+brpop(Client, Key, Timeout) ->
+    ?maybe_term(redis_client:request(
+                  Client, {"BRPOP", [Key, Timeout]},
+                  request_timeout(Timeout))).
+
+%%--------------------------------------------------------------------
+%% @doc Version of `mrpop' that supports multiple keys. Keys are
+%% checked in the order given.
+%%
+%% Redis command: [http://redis.io/commands/brpop BRPOP]
+%%
+%% @spec bmrpop(Client, Keys, Timeout) -> {ok, Value} | undefined
+%% Client = client()
+%% Keys = [key()]
+%% Timeout = integer()
+%% Value = stored_value()
+%% @end
+%%--------------------------------------------------------------------
+
+bmrpop(Client, Keys, Timeout) ->
+    ?maybe_term(redis_client:request(
+                  Client, {"BRPOP", Keys ++ [Timeout]},
+                  request_timeout(Timeout))).
+
 %%%===================================================================
 %%% Internal functions
 %%%===================================================================
+
+request_timeout(Timeout) -> Timeout * 1000 + 1000.
+
+where_arg(before) -> <<"BEFORE">>;
+where_arg('after') -> <<"AFTER">>;
+where_arg(Other) -> error({badarg, Other}).
