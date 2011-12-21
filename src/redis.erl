@@ -4,173 +4,178 @@
 %%% @type client() = pid()
 %%% @type iolist() = binary() | string()
 %%% @type key() = iolist()
+%%% @type channel() = iolist()
+%%% @type pattern() = iolist()
 %%% @type value() = iolist() | integer()
 %%% @type stored_value() = binary()
+%%% @type stored_key() = binary()
 %%% @end
 -module(redis).
 
--export([connect/0, connect/1, connect/2,
-         auth/2,
-         dbsize/1,
-         get/2,
-         set/3,
-         setnx/3,
-         exists/2,
-         del/2,
-         mdel/2,
-         keys/2,
-         quit/1,
-         flushdb/1,
+-include("redis.hrl").
+
+-export([connect/0, connect/1,
          append/3,
-         echo/2,
-         ping/1,
-         decr/2,
-         decrby/3,
-         incr/2,
-         incrby/3,
-         rename/3,
-         renamenx/3,
-         sadd/3,
-         smadd/3,
-         srem/3,
-         smrem/3,
-         sismember/3,
-         smembers/2,
+         auth/2,
          bgrewriteaof/1,
          bgsave/1,
-         lastsave/1,
-         lpush/3,
-         lpushx/3,
-         mlpush/3,
-         lpop/2,
          blpop/3,
          bmlpop/3,
+         bmrpop/3,
+         brpop/3,
+         brpoplpush/4,
+         config_get/2,
+         config_resetstat/1,
+         config_set/3,
+         dbsize/1,
+         debug_object/2,
+         debug_segfault/1,
+         decr/2,
+         decrby/3,
+         del/2,
+         discard/1,
+         echo/2,
+         exec/1,
+         exists/2,
+         expire/3,
+         expireat/3,
+         flushall/1,
+         flushdb/1,
+         get/2,
+         getbit/3,
+         getrange/4,
+         getset/3,
+         hdel/1,
+         hexists/1,
+         hget/1,
+         hgetall/1,
+         hincrby/1,
+         hkeys/1,
+         hlen/1,
+         hmget/1,
+         hmset/1,
+         hset/1,
+         hsetnx/1,
+         hvals/1,
+         incr/2,
+         incrby/3,
+         info/1,
+         keys/2,
+         lastsave/1,
          lindex/3,
          linsert/5,
          llen/2,
+         lpop/2,
+         lpush/3,
+         lpushx/3,
          lrange/4,
          lrem/4,
          lset/4,
          ltrim/4,
+         mdel/2,
+         mget/1,
+         mlpush/3,
+         monitor/1,
+         move/1,
+         mrpush/3,
+         mset/1,
+         msetnx/1,
+         multi/1,
+         object/3,
+         persist/2,
+         ping/1,
+         psubscribe/2,
+         publish/3,
+         punsubscribe/1,
+         punsubscribe/2,
+         quit/1,
+         randomkey/1,
+         rename/3,
+         renamenx/3,
+         rpop/2,
+         rpoplpush/3,
          rpush/3,
          rpushx/3,
-         mrpush/3,
-         rpop/2,
-         brpop/3,
-         bmrpop/3
-         %% BRPOPLPUSH
-         %% RPOPLPUSH
-         %% CONFIG GET
-         %% CONFIG SET
-         %% CONFIG RESETAT
-         %% DEBUG OBJECT
-         %% DEBUG SEGFAULT
-         %% DISCARD
-         %% EXEC
-         %% EXPIRE
-         %% EXPIREAT
-         %% FLUSHALL
-         %% GETBIT
-         %% GETRANGE
-         %% GETSET
-         %% HDEL
-         %% HEXISTS
-         %% HGET
-         %% HGETALL
-         %% HINCRBY
-         %% HKEYS
-         %% HLEN
-         %% HMGET
-         %% HMSET
-         %% HSET
-         %% HSETNX
-         %% HVALS
-         %% INFO
-         %% MGET
-         %% MONITOR
-         %% MOVE
-         %% MSET
-         %% MSETNX
-         %% MULTI
-         %% OBJECT
-         %% PERSIST
-         %% PSUBSCRIBE
-         %% PUBLISH
-         %% PUNSUBSCRIBE
-         %% RANDOMKEY
-         %% SAVE
-         %% SCARD
-         %% SDIFF
-         %% SDIFFSTORE
-         %% SELECT
-         %% SETBIT
-         %% SETEX
-         %% SETRANGE
-         %% SHUTDOWN    %% can use this to terminate test server?
-         %% SINTER
-         %% SINTERSTORE
-         %% SLAVEOF
-         %% SLOWLOG
-         %% SMOVE
-         %% SORT
-         %% SPOP
-         %% SRANDMEMBER
-         %% STRLEN
-         %% SUBSCRIBE
-         %% SUNINION
-         %% SUNIONSTORE
-         %% SYNC
-         %% TTL
-         %% TYPE
-         %% UNSUBSCRIBE
-         %% UNWATCH
-         %% WATCH
-         %% ZADD
-         %% ZCARD
-         %% ZCOUNT
-         %% ZINCRBY
-         %% ZINTERSTORE
-         %% ZRANGE
-         %% ZRANGEBYSCORE
-         %% ZRANK
-         %% ZREM
-         %% ZREMRANKGEBYRANK
-         %% ZREMRANGEBYSCORE
-         %% ZREVRANGE
-         %% ZREVRANGEBYSCORE
-         %% ZREVRANK
-         %% ZSCORE
-         %% ZUNIONSTORE
+         sadd/3,
+         save/1,
+         scard/2,
+         sdiff/2,
+         sdiffstore/3,
+         select/2,
+         set/3,
+         setbit/4,
+         setex/4,
+         setnx/3,
+         setrange/4,
+         shutdown/1,
+         sinter/2,
+         sinterstore/3,
+         sismember/3,
+         slaveof/2,
+         slowlog/2,
+         smadd/3,
+         smembers/2,
+         smove/4,
+         smrem/3,
+         sort/2,
+         sort/3,
+         spop/2,
+         srandmember/2,
+         srem/3,
+         strlen/2,
+         subscribe/2,
+         sunion/2,
+         sunionstore/3,
+         sync/1,
+         ttl/2,
+         type/2,
+         unsubscribe/1,
+         unsubscribe/2,
+         unwatch/1,
+         watch/1,
+         zadd/1,
+         zcard/1,
+         zcount/1,
+         zincrby/1,
+         zinterstore/1,
+         zrange/1,
+         zrangebyscore/1,
+         zrank/1,
+         zrem/1,
+         zremrangebyrank/1,
+         zremrangebyscore/1,
+         zrevrange/1,
+         zrevrangebyscore/1,
+         zrevrank/1,
+         zscore/1,
+         zunionstore/1
         ]).
 
--define(DEFAULT_HOST, "127.0.0.1").
--define(DEFAULT_PORT, 6379).
-
--define(ok(Val),
-        case Val of
+-define(ok(_Val),
+        case _Val of
             ok -> ok;
             {ok, _} -> ok;
-            {error, Err} -> error(Err)
+            {error, _Err} -> error(_Err)
         end).
 
--define(bool(Val),
-        case Val of
+-define(bool(_Val),
+        case _Val of
             {ok, 0} -> false;
             {ok, 1} -> true;
-            {error, Err} -> error(Err)
+            {error, _Err} -> error(_Err)
         end).
 
--define(term(Val),
-        case Val of
-            {ok, Term} -> Term;
-            {error, Err} -> error(Err)
+-define(term(_Val),
+        case _Val of
+            {ok, _Term} -> _Term;
+            {error, _Err} -> error(_Err)
         end).
 
--define(maybe_term(Result),
-    case Result of
-        {ok, Value} -> {ok, Value};
+-define(maybe_term(_Result),
+    case _Result of
+        {ok, _Value} -> {ok, _Value};
         undefined -> undefined;
-        {error, Err} -> error(Err)
+        {error, _Err} -> error(_Err)
     end).
 
 %%%===================================================================
@@ -181,36 +186,30 @@
 %% @doc Connect to a locally running Redis server.
 %% @spec connect() -> {ok, Client}  | {error, Reason}
 %% Client = client()
-%% @equiv connect("127.0.0.1")
+%% @equiv connect([])
 %% @end
 %%--------------------------------------------------------------------
 
 connect() ->
-    redis_client:start_link(?DEFAULT_HOST, ?DEFAULT_PORT).
+    connect([]).
 
 %%--------------------------------------------------------------------
-%% @doc Connect to a host running Redis on the standard Redis port.
-%% @spec connect(Host) -> {ok, Client} | {error, Reason}
+%% @doc Connect to a host running Redis using the specified options.
+%% @spec connect(Options) -> {ok, Client} | {error, Reason}
+%% Options = [connect_option()]
+%% connect_option() = {host, Host} |
+%%                    {port, Port} |
+%%                    {recipient, Recipient}
 %% Host = string()
-%% Client = client()
-%% @equiv connect(Host, 6379)
-%% @end
-%%--------------------------------------------------------------------
-
-connect(Host) ->
-    redis_client:start_link(Host, ?DEFAULT_PORT).
-
-%%--------------------------------------------------------------------
-%% @doc Connect to a host running Redis on a non-standard port.
-%% @spec connect(Host, Port) -> {ok, Client} | {error, Reason}
-%% Host = string()
-%% Port = integer()
+%% Port = port()
+%% Recipient = function() | MFA | pid()
+%% MFA = {atom(), atom(), [term()]}
 %% Client = client()
 %% @end
 %%--------------------------------------------------------------------
 
-connect(Host, Port) ->
-    redis_client:start_link(Host, Port).
+connect(Options) ->
+    redis_client:start_link(Options).
 
 %%--------------------------------------------------------------------
 %% @doc Authenticate with a Redis server.
@@ -1024,6 +1023,1216 @@ bmrpop(Client, Keys, Timeout) ->
                   Client, {"BRPOP", Keys ++ [Timeout]},
                   request_timeout(Timeout))).
 
+%%--------------------------------------------------------------------
+%% @doc The blocking variant of rpoplpush/3.
+%%
+%% Timeout is in seconds and may be 0 to block indefinitely.
+%%
+%% Redis command: [http://redis.io/commands/brpoplpush BRPOPLPUSH]
+%%
+%% @spec brpoplpush(Client, Source, Destination, Timeout) ->
+%%                                               undefined | {ok, Value}
+%% Client = client()
+%% Source = key()
+%% Destination = key()
+%% Timeout = integer()
+%% Value = store_value()
+%% @end
+%%--------------------------------------------------------------------
+
+brpoplpush(Client, Source, Destination, Timeout) ->
+    ?maybe_term(redis_client:request(
+                  Client, {"BRPOPLPUSH", [Source, Destination, Timeout]})).
+
+%%--------------------------------------------------------------------
+%% @doc Atomically returns and removes the last element of the list at
+%% Source and pushes the element at the first element at Destination.
+%%
+%% Redis command: [http://redis.io/commands/rpoplpush RPOPLPUSH]
+%%
+%% @spec rpoplpush(Client, Source, Destination) -> undefined | {ok, Value}
+%% Client = client()
+%% Source = key()
+%% Destination = key()
+%% Value = store_value()
+%% @end
+%%--------------------------------------------------------------------
+
+rpoplpush(Client, Source, Destination) ->
+    ?maybe_term(redis_client:request(
+                  Client, {"RPOPLPUSH", [Source, Destination]})).
+
+%%--------------------------------------------------------------------
+%% @doc Returns configuration parameters of the server.
+%%
+%% Parameter can be a glob expression to match multiple parameters.
+%%
+%% Redis command: [http://redis.io/commands/config-get CONFIG GET]
+%%
+%% @spec config_get(Client, Parameter) ->  paramlist()
+%% Client = client()
+%% Parameter = string()
+%% paramlist() = [{string(), term()}]
+%% @end
+%%--------------------------------------------------------------------
+
+config_get(Client, Parameter) ->
+    multi_proplist(?term(redis_client:request(
+                           Client, {"CONFIG", ["GET", Parameter]}))).
+
+%%--------------------------------------------------------------------
+%% @doc Reconfigures the server without the need to restart it.
+%%
+%% Redis command: [http://redis.io/commands/config-set CONFIG SET]
+%%
+%% @spec config_set(Client, Parameter, Value) -> ok
+%% Client = client()
+%% Parameter = string()
+%% Value = value()
+%% @end
+%%--------------------------------------------------------------------
+
+config_set(Client, Parameter, Value) ->
+    ?ok(redis_client:request(Client, {"CONFIG", ["SET", Parameter, Value]})).
+
+%%--------------------------------------------------------------------
+%% @doc Resets the statistics reported by info/1.
+%%
+%% Redis command: [http://redis.io/commands/config-resetstat CONFIG RESETSTAT]
+%%
+%% @spec config_resetstat(Client) -> ok
+%% Client = client()
+%% @end
+%%--------------------------------------------------------------------
+
+config_resetstat(Client) ->
+    ?ok(redis_client:request(Client, {"CONFIG", ["RESETSTAT"]})).
+
+%%--------------------------------------------------------------------
+%% @doc Get information about an object.
+%%
+%% Returns error if the key doesn't exist.
+%%
+%% Redis command: [http://redis.io/commands/debug-object DEBUG OBJECT]
+%%
+%% @spec debug_object(Client, Key) -> {ok, Info} | error
+%% Client = client()
+%% Key = key()
+%% Info = string()
+%% @end
+%%--------------------------------------------------------------------
+
+debug_object(Client, Key) ->
+    case redis_client:request(Client, {"DEBUG", ["OBJECT", Key]}) of
+        {ok, Info} -> {ok, Info};
+        {error, "no such key"} -> error;
+        {error, Err} -> error(Err)
+    end.
+
+%%--------------------------------------------------------------------
+%% @doc This function is not implemented but is here for completeness.
+%%
+%% Redis command: [http://redis.io/commands/debug-segfault DEBUG SEGFAULT]
+%%
+%% @spec debug_segfault(Client) -> any()
+%% Client = client()
+%% @end
+%%--------------------------------------------------------------------
+
+debug_segfault(_Client) ->
+    error(not_implemented).
+
+%%--------------------------------------------------------------------
+%% @doc Flushes all previously queued commands in a transaction and
+%% restores the connection state to normal.
+%%
+%% Redis command: [http://redis.io/commands/discard DISCARD]
+%%
+%% @spec discard(Client) -> ok
+%% Client = client()
+%% @end
+%%--------------------------------------------------------------------
+
+discard(Client) ->
+    ?ok(redis_client:request(Client, {"DISCARD", []})).
+
+%%--------------------------------------------------------------------
+%% @doc Executes all previously queued commands in a transaction and
+%% restores the connection state to normal.
+%%
+%% Redis command: [http://redis.io/commands/exec EXEC]
+%%
+%% @spec exec(Client) -> ok
+%% @end
+%%--------------------------------------------------------------------
+
+exec(Client) ->
+    ?ok(redis_client:request(Client, {"EXEC", []})).
+
+%%--------------------------------------------------------------------
+%% @doc Set a timeout on key.
+%%
+%% After the timeout has expired, the key will automatically be deleted.
+%%
+%% Returns true if the timeout was set, otherwise returns false.
+%%
+%% Redis command: [http://redis.io/commands/expire EXPIRE]
+%%
+%% @spec expire(Client, Key, Seconds) -> boolean()
+%% Client = client()
+%% Key = key()
+%% Seconds = integer()
+%% @end
+%%--------------------------------------------------------------------
+
+expire(Client, Key, Seconds) ->
+    ?bool(redis_client:request(Client, {"EXPIRE", [Key, Seconds]})).
+
+%%--------------------------------------------------------------------
+%% @doc Set a timeout on key in epoch seconds.
+%%
+%% Returns true if the timeout was set successfully, otherwise returns
+%% false.
+%%
+%% Redis command: [http://redis.io/commands/expireat EXPIREAT]
+%%
+%% @spec expireat(Client, Key, Timeout) -> boolean()
+%% Client = client()
+%% Key = key()
+%% Timeout = integer()
+%% @end
+%%--------------------------------------------------------------------
+
+expireat(Client, Key, Timeout) ->
+    ?bool(redis_client:request(Client, {"EXPIREAT", [Key, Timeout]})).
+
+%%--------------------------------------------------------------------
+%% @doc Delete all the keys of all the existing databases.
+%%
+%% Redis command: [http://redis.io/commands/flushall FLUSHALL]
+%%
+%% @spec flushall(Client) -> ok
+%% Client = client()
+%% @end
+%%--------------------------------------------------------------------
+
+flushall(Client) ->
+    ?ok(redis_client:request(Client, {"FLUSHALL", []})).
+
+%%--------------------------------------------------------------------
+%% @doc Returns the bit value at offset in the string value stored at key.
+%%
+%% Redis command: [http://redis.io/commands/getbit GETBIT]
+%%
+%% @spec getbit(Client) -> 0 | 1
+%% @end
+%%--------------------------------------------------------------------
+
+getbit(Client, Key, Offset) ->
+    ?term(redis_client:request(Client, {"GETBIT", [Key, Offset]})).
+
+%%--------------------------------------------------------------------
+%% @doc Returns a substring of the string value stored at Key.
+%%
+%% Redis command: [http://redis.io/commands/getrange GETRANGE]
+%%
+%% @spec getrange(Client, Key, Start, End) -> string()
+%% Client = client()
+%% Key = key()
+%% Start = start()
+%% End = end()
+%% @end
+%%--------------------------------------------------------------------
+
+getrange(Client, Key, Start, End) ->
+    ?term(redis_client:request(Client, {"GETRANGE", [Key, Start, End]})).
+
+%%--------------------------------------------------------------------
+%% @doc Atomically sets key to value and returns the old value stored
+%% at key.
+%%
+%% Redis command: [http://redis.io/commands/getset GETSET]
+%%
+%% @spec getset(Client, Key, Value) -> xxx
+%% @end
+%%--------------------------------------------------------------------
+
+getset(Client, Key, Value) ->
+    ?maybe_term(redis_client:request(Client, {"GETSET", [Key, Value]})).
+
+%%--------------------------------------------------------------------
+%% @doc
+%%
+%% Redis command: [http://redis.io/commands/xxx XXX]
+%%
+%% @spec
+%% @end
+%%--------------------------------------------------------------------
+
+hdel(Client) ->
+    xxx.
+
+%%--------------------------------------------------------------------
+%% @doc
+%%
+%% Redis command: [http://redis.io/commands/xxx XXX]
+%%
+%% @spec
+%% @end
+%%--------------------------------------------------------------------
+
+hexists(Client) ->
+    xxx.
+
+%%--------------------------------------------------------------------
+%% @doc
+%%
+%% Redis command: [http://redis.io/commands/xxx XXX]
+%%
+%% @spec
+%% @end
+%%--------------------------------------------------------------------
+
+hget(Client) ->
+    xxx.
+
+%%--------------------------------------------------------------------
+%% @doc
+%%
+%% Redis command: [http://redis.io/commands/xxx XXX]
+%%
+%% @spec
+%% @end
+%%--------------------------------------------------------------------
+
+hgetall(Client) ->
+    xxx.
+
+%%--------------------------------------------------------------------
+%% @doc
+%%
+%% Redis command: [http://redis.io/commands/xxx XXX]
+%%
+%% @spec
+%% @end
+%%--------------------------------------------------------------------
+
+hincrby(Client) ->
+    xxx.
+
+%%--------------------------------------------------------------------
+%% @doc
+%%
+%% Redis command: [http://redis.io/commands/xxx XXX]
+%%
+%% @spec
+%% @end
+%%--------------------------------------------------------------------
+
+hkeys(Client) ->
+    xxx.
+
+%%--------------------------------------------------------------------
+%% @doc
+%%
+%% Redis command: [http://redis.io/commands/xxx XXX]
+%%
+%% @spec
+%% @end
+%%--------------------------------------------------------------------
+
+hlen(Client) ->
+    xxx.
+
+%%--------------------------------------------------------------------
+%% @doc
+%%
+%% Redis command: [http://redis.io/commands/xxx XXX]
+%%
+%% @spec
+%% @end
+%%--------------------------------------------------------------------
+
+hmget(Client) ->
+    xxx.
+
+%%--------------------------------------------------------------------
+%% @doc
+%%
+%% Redis command: [http://redis.io/commands/xxx XXX]
+%%
+%% @spec
+%% @end
+%%--------------------------------------------------------------------
+
+hmset(Client) ->
+    xxx.
+
+%%--------------------------------------------------------------------
+%% @doc
+%%
+%% Redis command: [http://redis.io/commands/xxx XXX]
+%%
+%% @spec
+%% @end
+%%--------------------------------------------------------------------
+
+hset(Client) ->
+    xxx.
+
+%%--------------------------------------------------------------------
+%% @doc
+%%
+%% Redis command: [http://redis.io/commands/xxx XXX]
+%%
+%% @spec
+%% @end
+%%--------------------------------------------------------------------
+
+hsetnx(Client) ->
+    xxx.
+
+%%--------------------------------------------------------------------
+%% @doc
+%%
+%% Redis command: [http://redis.io/commands/xxx XXX]
+%%
+%% @spec
+%% @end
+%%--------------------------------------------------------------------
+
+hvals(Client) ->
+    xxx.
+
+%%--------------------------------------------------------------------
+%% @doc Get information and stantistics about the server.
+%%
+%% Redis command: [http://redis.io/commands/info INFO]
+%%
+%% @spec info(Client) -> proplist()
+%% Client = client()
+%% @end
+%%--------------------------------------------------------------------
+
+info(Client) ->
+    bulk_proplist(?term(redis_client:request(Client, {"INFO", []}))).
+
+%%--------------------------------------------------------------------
+%% @doc
+%%
+%% Redis command: [http://redis.io/commands/xxx XXX]
+%%
+%% @spec
+%% @end
+%%--------------------------------------------------------------------
+
+mget(Client) ->
+    xxx.
+
+%%--------------------------------------------------------------------
+%% @doc
+%%
+%% Redis command: [http://redis.io/commands/xxx XXX]
+%%
+%% @spec
+%% @end
+%%--------------------------------------------------------------------
+
+monitor(Client) ->
+    xxx.
+
+%%--------------------------------------------------------------------
+%% @doc
+%%
+%% Redis command: [http://redis.io/commands/xxx XXX]
+%%
+%% @spec
+%% @end
+%%--------------------------------------------------------------------
+
+move(Client) ->
+    xxx.
+
+%%--------------------------------------------------------------------
+%% @doc
+%%
+%% Redis command: [http://redis.io/commands/xxx XXX]
+%%
+%% @spec
+%% @end
+%%--------------------------------------------------------------------
+
+mset(Client) ->
+    xxx.
+
+%%--------------------------------------------------------------------
+%% @doc
+%%
+%% Redis command: [http://redis.io/commands/xxx XXX]
+%%
+%% @spec
+%% @end
+%%--------------------------------------------------------------------
+
+msetnx(Client) ->
+    xxx.
+
+%%--------------------------------------------------------------------
+%% @doc Marks the start of a transaction block.
+%%
+% Subsequent commands will be queued for atomic execution using EXEC.
+%%
+%% Redis command: [http://redis.io/commands/multi MULTI]
+%%
+%% @spec multi(Client) -> ok
+%% Client = client()
+%% @end
+%%--------------------------------------------------------------------
+
+multi(Client) ->
+    ?ok(redis_client:request(Client, {"MULTI", []})).
+
+%%--------------------------------------------------------------------
+%% @doc Returns information about an object at Key.
+%%
+%% Redis command: [http://redis.io/commands/object OBJECT]
+%%
+%% @spec object(Client, Info, Key) -> {ok, Value} | undefined
+%% Client = client()
+%% Info = refcount | encoding | idletime
+%% Key = key()
+%% @end
+%%--------------------------------------------------------------------
+
+object(Client, Info, Key) ->
+    ?maybe_term(redis_client:request(
+                  Client, {"OBJECT", [object_subcommand(Info), Key]})).
+
+%%--------------------------------------------------------------------
+%% @doc Remove the existing timeout on key.
+%%
+%% Returns true if the timeout was removed, otherwise returns false.
+%%
+%% Redis command: [http://redis.io/commands/persist PERSIST]
+%%
+%% @spec persist(Client, Key) -> boolean()
+%% Client = client()
+%% Key = key()
+%% @end
+%%--------------------------------------------------------------------
+
+persist(Client, Key) ->
+    ?bool(redis_client:request(Client, {"PERSIST", [Key]})).
+
+%%--------------------------------------------------------------------
+%% @doc Subscribes the client to the given patterns.
+%%
+%% Redis command: [http://redis.io/commands/psubscribe PSUBSCRIBE]
+%%
+%% @spec psubscribe(Client, Patterns) -> ok
+%% Client = client()
+%% Patterns = [pattern()]
+%% @end
+%%--------------------------------------------------------------------
+
+psubscribe(Client, Patterns) ->
+    ?ok(redis_client:request(Client, {"PSUBSCRIBE", Patterns})).
+
+%%--------------------------------------------------------------------
+%% @doc Posts a message to the given channel.
+%%
+%% Redis command: [http://redis.io/commands/publish PUBLISH]
+%%
+%% Returns the number of clients that received the message.
+%%
+%% @spec publish(Client, Channel, Message) -> integer()
+%% Client = client()
+%% Channel = channel()
+%% Message = value()
+%% @end
+%%--------------------------------------------------------------------
+
+publish(Client, Channel, Message) ->
+    ?term(redis_client:request(Client, {"PUBLISH", [Channel, Message]})).
+
+%%--------------------------------------------------------------------
+%% @doc Unsubscribes the client from all patterns.
+%%
+%% Redis command: [http://redis.io/commands/punsubscribe PUNSUBSCRIBE]
+%%
+%% @spec punsubscribe(Client, Patterns) -> ok
+%% Client = client()
+%% @end
+%%--------------------------------------------------------------------
+
+punsubscribe(Client) ->
+    ?ok(redis_client:request(Client, {"PUNSUBSCRIBE", []})).
+
+%%--------------------------------------------------------------------
+%% @doc Unsubscribes the client from the given patterns.
+%%
+%% Redis command: [http://redis.io/commands/punsubscribe PUNSUBSCRIBE]
+%%
+%% @spec punsubscribe(Client, Patterns) -> ok
+%% Client = client()
+%% Patterns = [pattern()]
+%% @end
+%%--------------------------------------------------------------------
+
+punsubscribe(Client, Patterns) ->
+    ?ok(redis_client:request(Client, {"PUNSUBSCRIBE", Patterns})).
+
+%%--------------------------------------------------------------------
+%% @doc Return a random key from the currently selected database.
+%%
+%% Redis command: [http://redis.io/commands/randomkey RANDOMKEY]
+%%
+%% @spec randomkey(Client) -> stored_key()
+%% Client = client()
+%% @end
+%%--------------------------------------------------------------------
+
+randomkey(Client) ->
+    ?term(redis_client:request(Client, {"RANDOMKEY", []})).
+
+%%--------------------------------------------------------------------
+%% @doc Not sure what this does - not implemented.
+%%
+%% Redis command: [http://redis.io/commands/save SAVE]
+%%
+%% @spec save(Client) -> any()
+%% @end
+%%--------------------------------------------------------------------
+
+save(Client) ->
+    error(not_implemented).
+
+%%--------------------------------------------------------------------
+%% @doc Returns the number of elements of the set stored at Key.
+%%
+%% Returns 0 if Key doesn't exist.
+%%
+%% Redis command: [http://redis.io/commands/scard SCARD]
+%%
+%% @spec scard(Client, Key) -> integer()
+%% Client = client()
+%% Key = key()
+%% @end
+%%--------------------------------------------------------------------
+
+scard(Client, Key) ->
+    ?term(redis_client:request(Client, {"SCARD", [Key]})).
+
+%%--------------------------------------------------------------------
+%% @doc Returns the members of the set resulting from the difference
+%% between the first set and all the successive sets.
+%%
+%% Keys must contain at least two keys.
+%%
+%% Redis command: [http://redis.io/commands/sdiff SDIFF]
+%%
+%% @spec sdiff(Client, SetKeys) -> Diff
+%% Client = client()
+%% SetKeys = [key()]
+%% Diff = [stored_value()]
+%% @end
+%%--------------------------------------------------------------------
+
+sdiff(Client, SetKeys) when length(SetKeys) > 1 ->
+    ?term(redis_client:request(Client, {"SDIFF", SetKeys})).    
+
+%%--------------------------------------------------------------------
+%% @doc Store the result of `sdiff' in Destination rather than return it.
+%%
+%% Redis command: [http://redis.io/commands/sdiffstore SDIFFSTORE]
+%%
+%% @spec sdiffstore(Client, Destination, SetKeys) -> integer()
+%% Client = client()
+%% Destination = key()
+%% SetKeys = [key()]
+%% @end
+%%--------------------------------------------------------------------
+
+sdiffstore(Client, Destination, SetKeys) when length(SetKeys) >  1 ->
+    ?term(redis_client:request(
+            Client, {"SDIFFSTORE", [Destination|SetKeys]})).    
+
+%%--------------------------------------------------------------------
+%% @doc Select the DB with having the specified zero-based numeric index.
+%%
+%% Redis command: [http://redis.io/commands/select SELECT]
+%%
+%% @spec select(Client, DB) -> ok
+%% @end
+%%--------------------------------------------------------------------
+
+select(Client, DB) when is_integer(DB) ->
+    ?ok(redis_client:request(Client, {"SELECT", [DB]})).
+
+%%--------------------------------------------------------------------
+%% @doc Sets or clears the bit at offset in the string value stored at key.
+%%
+%% Returns the original bit value.
+%%
+%% Redis command: [http://redis.io/commands/setbit SETBIT]
+%%
+%% @spec setbit(Client, Key, Offset, Value) -> integer()
+%% Client = client()
+%% Key = key()
+%% Offset = integer()
+%% Value = 0 | 1
+%% @end
+%%--------------------------------------------------------------------
+
+setbit(Client, Key, Offset, Value) ->
+    ?term(redis_client:request(Client, {"SETBIT", [Key, Offset, Value]})).
+
+%%--------------------------------------------------------------------
+%% @doc Set a string value that will expire after a number of seconds.
+%%
+%% Redis command: [http://redis.io/commands/setex SETEX]
+%%
+%% @spec setex(Client, Key, Seconds, Value) -> ok
+%% Client = client()
+%% Key = key()
+%% Seconds = integer()
+%% Value = value()
+%% @end
+%%--------------------------------------------------------------------
+
+setex(Client, Key, Seconds, Value) ->
+    ?ok(redis_client:request(Client, {"SETEX", [Key, Seconds, Value]})).
+
+%%--------------------------------------------------------------------
+%% @doc Overwrites part of the string stored at key, starting at the
+%% specified offset, for the entire length of value.
+%%
+%% Redis command: [http://redis.io/commands/setrange SETRANGE]
+%%
+%% @spec setrange(Client, Key, Offset, Value) -> integer()
+%% Client = client()
+%% Key = key()
+%% Offset = integer()
+%% Value = value()
+%% @end
+%%--------------------------------------------------------------------
+
+setrange(Client, Key, Offset, Value) ->
+    ?term(redis_client:request(Client, {"SETRANGE", [Key, Offset, Value]})).
+
+%%--------------------------------------------------------------------
+%% @doc Shut down the server.
+%%
+%% This function will return immediately with ok. Because the server
+%% disconnects all clients on shutdown, the client will exit shortly
+%% after this call.
+%%
+%% Redis command: [http://redis.io/commands/shutdown SHUTDOWN]
+%%
+%% @spec shutdown(Client) -> ok
+%% Client = client()
+%% @end
+%%--------------------------------------------------------------------
+
+shutdown(Client) ->
+    try
+        redis_client:request(Client, {"SHUTDOWN", []}, 0)
+    catch
+        exit:{timeout, _} -> ok
+    end.
+
+%%--------------------------------------------------------------------
+%% @doc Returns the members of the set resulting from the intersection
+%% of all the given sets.
+%%
+%% Redis command: [http://redis.io/commands/sinter SINTER]
+%%
+%% @spec sinter(Client, SetKeys) -> Intersection
+%% Client = client()
+%% SetKeys = [key()]
+%% Intersection = [stored_value()]
+%% @end
+%%--------------------------------------------------------------------
+
+sinter(Client, SetKeys) when length(SetKeys) > 1 ->
+    ?term(redis_client:request(Client, {"SINTER", SetKeys})). 
+
+%%--------------------------------------------------------------------
+%% @doc Same as `setinter' but stores intersection in Destination.
+%%
+%% Redis command: [http://redis.io/commands/sinterstore SINTERSTORE]
+%%
+%% @spec sinterstore(Client, Destination, SetKeys) -> integer()
+%% Client = client()
+%% Destination = key()
+%% SetKeys = [key()]
+%% @end
+%%--------------------------------------------------------------------
+
+sinterstore(Client, Destination, SetKeys) ->
+    ?term(redis_client:request(
+            Client, {"SINTERSTORE", [Destination|SetKeys]})). 
+
+%%--------------------------------------------------------------------
+%% @doc Configures the server's slave settings.
+%%
+%% Redis command: [http://redis.io/commands/slaveof SLAVEOF]
+%%
+%% @spec slaveof(Client, SlaveSettings) -> ok
+%% SlaveSettings = master() | no_one
+%% master() = Host | {Host, Port}
+%% Host = string()
+%% Port = port()
+%% @end
+%%--------------------------------------------------------------------
+
+slaveof(Client, no_one) ->
+    ?ok(redis_client:request(Client, {"SLAVEOF", ["NO", "ONE"]}));
+slaveof(Client, {Host, Port}) ->
+    ?ok(redis_client:request(Client, {"SLAVEOF", [Host, Port]}));
+slaveof(Client, Host) ->
+    ?ok(redis_client:request(Client, {"SLAVEOF", [Host, ?DEFAULT_PORT]})).
+
+%%--------------------------------------------------------------------
+%% @doc Queries or resets the slow log.
+%%
+%% Redis command: [http://redis.io/commands/slowlog SLOWLOG]
+%%
+%% @spec slowlog(Client, Command) -> Result
+%% Command = get | {get, N} | len | reset
+%% Result = [string()] | integer() | ok
+%% @end
+%%--------------------------------------------------------------------
+
+slowlog(Client, get) ->
+    ?term(redis_client:request(Client, {"SLOWLOG", ["GET"]}));
+slowlog(Client, {get, N}) when is_integer(N), N > 0 ->
+    ?term(redis_client:request(Client, {"SLOWLOG", ["GET", N]}));
+slowlog(Client, len)->
+    ?term(redis_client:request(Client, {"SLOWLOG", ["LEN"]}));
+slowlog(Client, reset) ->
+    ?ok(redis_client:request(Client, {"SLOWLOG", ["RESET"]})).
+
+%%--------------------------------------------------------------------
+%% @doc Move member from the set at source to the set at destination.
+%%
+%% Redis command: [http://redis.io/commands/smove SMOVE]
+%%
+%% @spec smove(Client, Source, Destination, Member) -> boolean()
+%% Client = client()
+%% Source = key()
+%% Destination = key()
+%% Member = value()
+%% @end
+%%--------------------------------------------------------------------
+
+smove(Client, Source, Destination, Member) ->
+    ?bool(redis_client:request(
+            Client, {"SMOVE", [Source, Destination, Member]})).
+
+%%--------------------------------------------------------------------
+%% @doc Sorts the values at Key.
+%%
+%% Redis command: [http://redis.io/commands/sort SORT]
+%%
+%% @spec sort(Client, Key) -> [stored_value()]
+%% @equiv sort(Client, Key, [])
+%% @end
+%%--------------------------------------------------------------------
+
+sort(Client, Key) ->
+    sort(Client, Key, []).
+
+%%--------------------------------------------------------------------
+%% @doc Sorts the values at Key using Options.
+%%
+%% Multiple get options can be provided using {mget, [get()]}.
+%%
+%% Redis command: [http://redis.io/commands/sort SORT]
+%%
+%% @spec sort(Client, Key, Options) -> [stored_value()]
+%% Client = client()
+%% Key = key()
+%% Options = [sort_option()]
+%% sort_option() = {limit, Offset, Count} |
+%%                 asc | desc | alpha |
+%%                 {by, By} | {get, Get}, {mget, Gets} |
+%%                 {store, Store}
+%% @end
+%%--------------------------------------------------------------------
+
+sort(Client, Key, Options) ->
+    ?term(redis_client:request(Client, {"SORT", [Key|sort_args(Options)]})).
+
+%%--------------------------------------------------------------------
+%% @doc Removes and returns a random element from the set value
+%% stored at Key.
+%%
+%% Redis command: [http://redis.io/commands/spop SPOP]
+%%
+%% @spec spop(Client, Key) -> {ok, Value} | undefined
+%% Client = client()
+%% Key = key()
+%% Value = stored_value()
+%% @end
+%%--------------------------------------------------------------------
+
+spop(Client, Key) ->
+    ?maybe_term(redis_client:request(Client, {"SPOP", [Key]})).
+
+%%--------------------------------------------------------------------
+%% @doc Return a random element from the set value stored at key.
+%%
+%% Redis command: [http://redis.io/commands/srandmember SRANDMEMBER]
+%%
+%% @spec srandmember(Client, Key) -> {ok, Value} | undefined
+%% Client = client()
+%% Key = key()
+%% Value = stored_value()
+%% @end
+%%--------------------------------------------------------------------
+
+srandmember(Client, Key) ->
+    ?maybe_term(redis_client:request(Client, {"SRANDMEMBER", [Key]})).
+
+%%--------------------------------------------------------------------
+%% @doc Returns the length of the string value stored at Key.
+%%
+%% Redis command: [http://redis.io/commands/strlen STRLEN]
+%%
+%% @spec strlen(Client, Key) -> integer()
+%% @end
+%%--------------------------------------------------------------------
+
+strlen(Client, Key) ->
+    ?term(redis_client:request(Client, {"STRLEN", [Key]})).    
+
+%%--------------------------------------------------------------------
+%% @doc Subscribes the client to the specified channels.
+%%
+%% Redis command: [http://redis.io/commands/subscribe SUBSCRIBE]
+%%
+%% @spec subscribe(Client, Channels) -> ok
+%% @end
+%%--------------------------------------------------------------------
+
+subscribe(Client, Channels) ->
+    ?ok(redis_client:request(Client, {"SUBSCRIBE", Channels})).
+
+%%--------------------------------------------------------------------
+%% @doc Returns the members of the set resulting from the union of
+%% all the given sets.
+%%
+%% Redis command: [http://redis.io/commands/sunion SUNION]
+%%
+%% @spec sunion(Client, SetKeys) -> Union
+%% Client = client()
+%% SetKeys = [key()]
+%% Union = [stored_value()]
+%% @end
+%%--------------------------------------------------------------------
+
+sunion(Client, SetKeys) when length(SetKeys) > 1 ->
+    ?term(redis_client:request(Client, {"SUNION", SetKeys})).    
+
+%%--------------------------------------------------------------------
+%% @doc Same as `sunion' except that the result is stored at Destination.
+%%
+%% Redis command: [http://redis.io/commands/sunionstore SUNIONSTORE]
+%%
+%% @spec sdiffstore(Client, Destination, SetKeys) -> integer()
+%% Client = client()
+%% Destination = key()
+%% SetKeys = [key()]
+%% @end
+%%--------------------------------------------------------------------
+
+sunionstore(Client, Destination, SetKeys) when length(SetKeys) >  1 ->
+    ?term(redis_client:request(
+            Client, {"SUNIONSTORE", [Destination|SetKeys]})).    
+
+%%--------------------------------------------------------------------
+%% @doc This is not implemented yet - not sure what this does.
+%%
+%% Redis command: [http://redis.io/commands/sync SYNC]
+%%
+%% @spec sync(Client) -> any()
+%% @end
+%%--------------------------------------------------------------------
+
+sync(Client) ->
+    error(not_implemented).
+
+%%--------------------------------------------------------------------
+%% @doc Returns the remaining time to live of a key that has a timeout.
+%%
+%% Redis command: [http://redis.io/commands/ttl TTL]
+%%
+%% @spec ttl(Client, Key) -> integer()
+%% @end
+%%--------------------------------------------------------------------
+
+ttl(Client, Key) ->
+    ?term(redis_client:request(Client, {"TTL", [Key]})).
+
+%%--------------------------------------------------------------------
+%% @doc Returns the type of the value stored at Key.
+%%
+%% Redis command: [http://redis.io/commands/type TYPE]
+%%
+%% @spec type(Client, Key) -> Type
+%% Client = client()
+%% Key = key()
+%% Type = string | list | set | zset | hash | none
+%% @end
+%%--------------------------------------------------------------------
+
+type(Client, Key) ->
+    list_to_atom(?term(redis_client:request(Client, {"TYPE", [Key]}))).
+
+%%--------------------------------------------------------------------
+%% @doc Unsubscribe from all channels.
+%%
+%% Redis command: [http://redis.io/commands/unsubscribe UNSUBSCRIBE]
+%%
+%% @spec unsubscribe(Client) -> ok
+%% Client = client()
+%% @end
+%%--------------------------------------------------------------------
+
+unsubscribe(Client) ->
+    ?ok(redis_client:request(Client, {"UNSUBSCRIBE", []})).
+
+%%--------------------------------------------------------------------
+%% @doc Unsubscribes the client from the given channels.
+%%
+%% Redis command: [http://redis.io/commands/unsubscribe UNSUBSCRIBE]
+%%
+%% @spec unsubscribe(Client, Channels) -> ok
+%% Client = client()
+%% Chanels = [channel()]
+%% @end
+%%--------------------------------------------------------------------
+
+unsubscribe(Client, Channels) ->
+    ?ok(redis_client:request(Client, {"UNSUBSCRIBE", Channels})).
+
+%%--------------------------------------------------------------------
+%% @doc
+%%
+%% Redis command: [http://redis.io/commands/xxx XXX]
+%%
+%% @spec
+%% @end
+%%--------------------------------------------------------------------
+
+unwatch(Client) ->
+    xxx.
+
+%%--------------------------------------------------------------------
+%% @doc
+%%
+%% Redis command: [http://redis.io/commands/xxx XXX]
+%%
+%% @spec
+%% @end
+%%--------------------------------------------------------------------
+
+watch(Client) ->
+    xxx.
+
+%%--------------------------------------------------------------------
+%% @doc
+%%
+%% Redis command: [http://redis.io/commands/xxx XXX]
+%%
+%% @spec
+%% @end
+%%--------------------------------------------------------------------
+
+zadd(Client) ->
+    xxx.
+
+%%--------------------------------------------------------------------
+%% @doc
+%%
+%% Redis command: [http://redis.io/commands/xxx XXX]
+%%
+%% @spec
+%% @end
+%%--------------------------------------------------------------------
+
+zcard(Client) ->
+    xxx.
+
+%%--------------------------------------------------------------------
+%% @doc
+%%
+%% Redis command: [http://redis.io/commands/xxx XXX]
+%%
+%% @spec
+%% @end
+%%--------------------------------------------------------------------
+
+zcount(Client) ->
+    xxx.
+
+%%--------------------------------------------------------------------
+%% @doc
+%%
+%% Redis command: [http://redis.io/commands/xxx XXX]
+%%
+%% @spec
+%% @end
+%%--------------------------------------------------------------------
+
+zincrby(Client) ->
+    xxx.
+
+%%--------------------------------------------------------------------
+%% @doc
+%%
+%% Redis command: [http://redis.io/commands/xxx XXX]
+%%
+%% @spec
+%% @end
+%%--------------------------------------------------------------------
+
+zinterstore(Client) ->
+    xxx.
+
+%%--------------------------------------------------------------------
+%% @doc
+%%
+%% Redis command: [http://redis.io/commands/xxx XXX]
+%%
+%% @spec
+%% @end
+%%--------------------------------------------------------------------
+
+zrange(Client) ->
+    xxx.
+
+%%--------------------------------------------------------------------
+%% @doc
+%%
+%% Redis command: [http://redis.io/commands/xxx XXX]
+%%
+%% @spec
+%% @end
+%%--------------------------------------------------------------------
+
+zrangebyscore(Client) ->
+    xxx.
+
+%%--------------------------------------------------------------------
+%% @doc
+%%
+%% Redis command: [http://redis.io/commands/xxx XXX]
+%%
+%% @spec
+%% @end
+%%--------------------------------------------------------------------
+
+zrank(Client) ->
+    xxx.
+
+%%--------------------------------------------------------------------
+%% @doc
+%%
+%% Redis command: [http://redis.io/commands/xxx XXX]
+%%
+%% @spec
+%% @end
+%%--------------------------------------------------------------------
+
+zrem(Client) ->
+    xxx.
+
+%%--------------------------------------------------------------------
+%% @doc
+%%
+%% Redis command: [http://redis.io/commands/xxx XXX]
+%%
+%% @spec
+%% @end
+%%--------------------------------------------------------------------
+
+zremrangebyrank(Client) ->
+    xxx.
+
+%%--------------------------------------------------------------------
+%% @doc
+%%
+%% Redis command: [http://redis.io/commands/xxx XXX]
+%%
+%% @spec
+%% @end
+%%--------------------------------------------------------------------
+
+zremrangebyscore(Client) ->
+    xxx.
+
+%%--------------------------------------------------------------------
+%% @doc
+%%
+%% Redis command: [http://redis.io/commands/xxx XXX]
+%%
+%% @spec
+%% @end
+%%--------------------------------------------------------------------
+
+zrevrange(Client) ->
+    xxx.
+
+%%--------------------------------------------------------------------
+%% @doc
+%%
+%% Redis command: [http://redis.io/commands/xxx XXX]
+%%
+%% @spec
+%% @end
+%%--------------------------------------------------------------------
+
+zrevrangebyscore(Client) ->
+    xxx.
+
+%%--------------------------------------------------------------------
+%% @doc
+%%
+%% Redis command: [http://redis.io/commands/xxx XXX]
+%%
+%% @spec
+%% @end
+%%--------------------------------------------------------------------
+
+zrevrank(Client) ->
+    xxx.
+
+%%--------------------------------------------------------------------
+%% @doc
+%%
+%% Redis command: [http://redis.io/commands/xxx XXX]
+%%
+%% @spec
+%% @end
+%%--------------------------------------------------------------------
+
+zscore(Client) ->
+    xxx.
+
+%%--------------------------------------------------------------------
+%% @doc
+%%
+%% Redis command: [http://redis.io/commands/xxx XXX]
+%%
+%% @spec
+%% @end
+%%--------------------------------------------------------------------
+
+zunionstore(Client) ->
+    xxx.
+
 %%%===================================================================
 %%% Internal functions
 %%%===================================================================
@@ -1033,3 +2242,66 @@ request_timeout(Timeout) -> Timeout * 1000 + 1000.
 where_arg(before) -> <<"BEFORE">>;
 where_arg('after') -> <<"AFTER">>;
 where_arg(Other) -> error({badarg, Other}).
+
+bulk_proplist(Bin) ->
+    [bulk_prop(P) || P <- binary:split(Bin, <<"\r\n">>, [global, trim])].
+
+bulk_prop(Bin) ->
+    [Name, Val] = binary:split(Bin, <<":">>),
+    {binary_to_propname(Name), binary_to_propval(Val)}.
+
+multi_proplist(Values) ->
+    multi_proplist(Values, []).
+
+multi_proplist([], Acc) -> lists:reverse(Acc);
+multi_proplist([Key, Value|Rest], Acc) ->
+    Prop = {binary_to_list(Key), maybe_binary_to_propval(Value)},
+    multi_proplist(Rest, [Prop|Acc]).
+
+binary_to_propname(Bin) ->
+    list_to_atom(binary_to_list(Bin)).
+
+maybe_binary_to_propval(undefined) ->
+    undefined;
+maybe_binary_to_propval(Bin) when is_binary(Bin) ->
+    binary_to_propval(Bin).
+
+binary_to_propval(Bin) ->
+    S = binary_to_list(Bin),
+    try list_to_float(S) of
+        F -> F
+    catch
+        error:badarg ->
+            try list_to_integer(S) of
+                I -> I
+            catch
+                error:badarg -> S
+            end
+    end.
+
+object_subcommand(A) when is_atom(A) ->
+    atom_to_list(A).
+
+sort_args(Options) ->
+    sort_args(proplists:compact(Options), []).
+
+sort_args([], Acc) -> lists:concat(Acc);
+sort_args([{limit, Offset, Count}|Rest], Acc) ->
+    sort_args(Rest, [["LIMIT", Offset, Count]|Acc]);
+sort_args([asc|Rest], Acc) ->
+    sort_args(Rest, [["ASC"]|Acc]);
+sort_args([desc|Rest], Acc) ->
+    sort_args(Rest, [["DESC"]|Acc]);
+sort_args([alpha|Rest], Acc) ->
+    sort_args(Rest, [["ALPHA"]|Acc]);
+sort_args([{by, By}|Rest], Acc) ->
+    sort_args(Rest, [["BY", By]|Acc]);
+sort_args([{get, Get}|Rest], Acc) ->
+    sort_args(Rest, [["GET", Get]|Acc]);
+sort_args([{mget, Gets}|Rest], Acc) ->
+    GetCmds = lists:concat([["GET", G] || G <- Gets]),
+    sort_args(Rest, [GetCmds|Acc]);
+sort_args([{store, Dest}|Rest], Acc) ->
+    sort_args(Rest, [["STORE", Dest]|Acc]);
+sort_args([Other|_], _) ->
+    error({badarg, Other}).

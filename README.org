@@ -43,3 +43,19 @@ Very early stage - bindings are not useful at this time.
 However, basic protocol support is in place.
 
 
+
+* To Do / Issues
+
+** Queues operations should have a queue API
+
+Rather than return "QUEUED", {ok, "QUEUED"}, etc. we should bake that state
+into the API, either by returning the atom 'queued' or by generating an error.
+
+** undefined vs nil
+
+Redis docs use nil for missing values. We use undefined.
+
+I'm not sure undefined is the right thing here -- nil explicitly says "this is
+the value that Redis calls nil".
+
+Though arguably it's simpler just to use the Erlang standard undefined.

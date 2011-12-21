@@ -56,11 +56,14 @@ handle_multi(Count, Values, {unknown, <<>>}, Data)
     {{value, {ok, lists:reverse(Values)}}, {unknown, Data}};
 handle_multi(Count, Values, CurValue, Data) ->
     case data(Data, CurValue) of
-        {{value, {ok, Value}}, NextValue} ->
-            handle_multi(Count, [Value|Values], NextValue, <<>>);
+        {{value, Value}, NextValue} ->
+            handle_multi(Count, [multi_value(Value)|Values], NextValue, <<>>);
         {pending, NextValue} ->
             {pending, {multi, Count, Values, NextValue}}
     end.
+
+multi_value(undefined) -> undefined;
+multi_value({ok, Value}) -> Value. 
 
 handle_message(Data) ->
     case split_crlf(Data) of
