@@ -59,3 +59,104 @@ I'm not sure undefined is the right thing here -- nil explicitly says "this is
 the value that Redis calls nil".
 
 Though arguably it's simpler just to use the Erlang standard undefined.
+
+Note that Erlang also uses 'error' in these cases (e.g. dict:find/2) -- this
+might be better way to clarify the difference between "there's a value here,
+but it's not specified -- it's nil, undefined, etc." and "the key you requested
+doesn't exist".
+
+** Incongruence bewteen get results and list values
+
+A value from a `get' operation is {ok, Value} whereas a missing value is
+undefined. Values in list results however are just Value, with undefined also
+be used for missing values.
+
+It's possible to distinguish missing values in a list using a simple
+is_binary(V) vs undefined comparion. E.g.
+
+  case get_values() of
+      [H|_] when is_binary(H) -> "I have a value!";
+      [undefined|_] -> "I don't have a value :("
+  end
+
+but in a get operation:
+
+  case get_value() of
+     {ok, Val} -> "Have!";
+     undefined -> "Don't have :("
+  end
+
+I think this okay: an 'undefined' in a list is a value -- it's just undefined
+(arguably this should be 'nil' -- see above).
+
+In the get case, undefined means "value doesn't exist". Idiomatic erlang might
+even use 'error' for this (e.g. dict:find/2).
+
+Still, I'm not sure using 'undefined' everywhere for all cases is the right
+thing.
+
+** Pubsub
+
+Background: http://redis.io/topics/pubsub
+
+It's unnerving that the pubsub facility of Redis overlay the more typically
+used passive request/response API. You can see the paradigms conflicting in
+Redis's refusal to perform any non-pubsub operation once a client is
+subscribing to messages.
+
+Even the response to subscribe requests is different:
+
+  The reply of the SUBSCRIBE and UNSUBSCRIBE operations are sent in the form of
+  messages, so that the client can just read a coherent stream of messages
+  where the first element indicates the type of message.
+
+The current API implementation mirrors the behavior that Redis expects, but the
+conflicting world views bother me. I'm wondering if a separate subscriber
+facility might be a better design for this API.
+
+This would be an offshoot client (or redis_client operating in a different
+mode) that you'd use like this:
+
+#+begin_src erlang
+  {ok, S} = redis_subscribe:start_link(ConnectOptions, SubOptions),
+  redis_subscribe:subscribe(S, "foo"),
+  redis_subscribe:psubscribe(S, "bar_*")
+#+end_src
+
+My guess is that the subscriber use case would be fine with this -- it's
+unlikely that a client would need to switch contexts over time. E.g. a
+subscriber would receive messages and then, rather than unsubscribe, do Redis
+work, then subscribe again, it would use another client to do the work while
+still receiving messages.
+
+Through the `redis' API module, it would look like this:
+
+#+begin_src erlang
+  HandleMsg = fun(Msg) -> io:format("Got a msg: ~p~n", [Msg]) end,
+  {ok, S} = redis:connect_subscriber(ConnectOptions, HandleMsg),
+  redis:subscribe(S, "foo"),
+  redis:psubscribe(S, "bar_*")
+#+end_src
+
+The `subscribe' and `unsubscribe' functions would work the same, but they would
+refuse to work on a redis_client process, thereby keeping subscriber functions
+separate from the operations.
+
+** Pipelining
+
+Background: http://redis.io/topics/pipelining
+
+This might look something like this:
+
+#+begin_src erlang
+  {ok, C} = redis:connect(),
+  Ops = [{incr, ["foo", 1]},
+         {incr, ["bar", 1]},
+         {incr, ["baz", 1]}],
+  Results = redis:pipeline(Ops)
+#+end_src
+
+This would be quite simple to implement -- the results would be raw responses
+from the server (i.e. each operation returns a value - errors do not generate
+exceptions).
+

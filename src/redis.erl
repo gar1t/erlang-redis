@@ -4,11 +4,13 @@
 %%% @type client() = pid()
 %%% @type iolist() = binary() | string()
 %%% @type key() = iolist()
+%%% @type field() = iolist()
 %%% @type channel() = iolist()
 %%% @type pattern() = iolist()
 %%% @type value() = iolist() | integer()
 %%% @type stored_value() = binary()
 %%% @type stored_key() = binary()
+%%% @type stored_field() = binary()
 %%% @end
 -module(redis).
 
@@ -45,18 +47,18 @@
          getbit/3,
          getrange/4,
          getset/3,
-         hdel/1,
-         hexists/1,
-         hget/1,
-         hgetall/1,
-         hincrby/1,
-         hkeys/1,
-         hlen/1,
-         hmget/1,
-         hmset/1,
-         hset/1,
-         hsetnx/1,
-         hvals/1,
+         hdel/3,
+         hexists/3,
+         hget/3,
+         hgetall/2,
+         hincrby/4,
+         hkeys/2,
+         hlen/2,
+         hmget/3,
+         hmset/3,
+         hset/4,
+         hsetnx/4,
+         hvals/2,
          incr/2,
          incrby/3,
          info/1,
@@ -73,13 +75,13 @@
          lset/4,
          ltrim/4,
          mdel/2,
-         mget/1,
+         mget/2,
          mlpush/3,
          monitor/1,
-         move/1,
+         move/3,
          mrpush/3,
-         mset/1,
-         msetnx/1,
+         mset/2,
+         msetnx/2,
          multi/1,
          object/3,
          persist/2,
@@ -1253,7 +1255,11 @@ getrange(Client, Key, Start, End) ->
 %%
 %% Redis command: [http://redis.io/commands/getset GETSET]
 %%
-%% @spec getset(Client, Key, Value) -> xxx
+%% @spec getset(Client, Key, Value) -> {ok, OldValue} | undefined
+%% Client = client()
+%% Key = key()
+%% Value = value()
+%% OldValue = stored_value()
 %% @end
 %%--------------------------------------------------------------------
 
@@ -1261,148 +1267,191 @@ getset(Client, Key, Value) ->
     ?maybe_term(redis_client:request(Client, {"GETSET", [Key, Value]})).
 
 %%--------------------------------------------------------------------
-%% @doc
+%% @doc Removes the specified fields from the hash stored at Key.
 %%
-%% Redis command: [http://redis.io/commands/xxx XXX]
+%% Redis command: [http://redis.io/commands/hdel HDEL]
 %%
-%% @spec
+%% @spec hdel(Client, Key, Fields) -> integer()
+%% Client = client()
+%% Key = key()
+%% Fields = [field()]
 %% @end
 %%--------------------------------------------------------------------
 
-hdel(Client) ->
-    xxx.
+hdel(Client, Key, Fields) ->
+    ?term(redis_client:request(Client, {"HDEL", [Key|Fields]})).
 
 %%--------------------------------------------------------------------
-%% @doc
+%% @doc Returns if Field is an existing field in the hash stored at Key.
 %%
-%% Redis command: [http://redis.io/commands/xxx XXX]
+%% Redis command: [http://redis.io/commands/hexists HEXISTS]
 %%
-%% @spec
+%% @spec hexists(Client, Key, Field) -> boolean()
+%% Client = client()
+%% Key = key()
+%% Field = field()
 %% @end
 %%--------------------------------------------------------------------
 
-hexists(Client) ->
-    xxx.
+hexists(Client, Key, Field) ->
+    ?bool(redis_client:request(Client, {"HEXISTS", [Key, Field]})).
 
 %%--------------------------------------------------------------------
-%% @doc
+%% @doc Returns the value associated with Field in the hash stored at Key.
 %%
-%% Redis command: [http://redis.io/commands/xxx XXX]
+%% Redis command: [http://redis.io/commands/hget HGET]
 %%
-%% @spec
+%% @spec hget(Client, Key, Field) -> {ok, Value} | undefined
+%% Client = client()
+%% Key = key()
+%% Field = field()
 %% @end
 %%--------------------------------------------------------------------
 
-hget(Client) ->
-    xxx.
+hget(Client, Key, Field) ->
+    ?maybe_term(redis_client:request(Client, {"HGET", [Key, Field]})).
 
 %%--------------------------------------------------------------------
-%% @doc
+%% @doc Returns all fields and values of the hash stored at Key.
 %%
-%% Redis command: [http://redis.io/commands/xxx XXX]
+%% Redis command: [http://redis.io/commands/hgetall HGETALL]
 %%
-%% @spec
+%% @spec hgetall(Client, Key) -> [{stored_field(), stored_value()}]
+%% Client = client()
+%% Key = key()
 %% @end
 %%--------------------------------------------------------------------
 
-hgetall(Client) ->
-    xxx.
+hgetall(Client, Key) ->
+    multi_hashlist(?term(redis_client:request(Client, {"HGETALL", [Key]}))).
 
 %%--------------------------------------------------------------------
-%% @doc
+%% @doc Increments the number stored at Field in the hash stored at Key
+%% by increment.
 %%
-%% Redis command: [http://redis.io/commands/xxx XXX]
+%% Redis command: [http://redis.io/commands/hincrby HINCRBY]
 %%
-%% @spec
+%% @spec hincrby(Client, Key, Field, Increment) -> integer()
+%% Client = client()
+%% Key = key()
+%% Field = field()
+%% Increment = integer()
 %% @end
 %%--------------------------------------------------------------------
 
-hincrby(Client) ->
-    xxx.
+hincrby(Client, Key, Field, Increment) ->
+    ?term(redis_client:request(Client, {"HINCRBY", [Key, Field, Increment]})).
 
 %%--------------------------------------------------------------------
-%% @doc
+%% @doc Returns all field names in the hash stored at Key.
 %%
-%% Redis command: [http://redis.io/commands/xxx XXX]
+%% Redis command: [http://redis.io/commands/hkeys HKEYS]
 %%
-%% @spec
+%% @spec hkeys(Client, Key) -> [stored_field()]
+%% Client = client()
+%% Key = key()
 %% @end
 %%--------------------------------------------------------------------
 
-hkeys(Client) ->
-    xxx.
+hkeys(Client, Key) ->
+    ?term(redis_client:request(Client, {"HKEYS", [Key]})).
 
 %%--------------------------------------------------------------------
-%% @doc
+%% @doc Returns the number of fields contained in the hash stored at Key.
 %%
-%% Redis command: [http://redis.io/commands/xxx XXX]
+%% Redis command: [http://redis.io/commands/hlen HLEN]
 %%
-%% @spec
+%% @spec hlen(Client, Key) -> integer()
+%% Client = client()
+%% Key = key()
 %% @end
 %%--------------------------------------------------------------------
 
-hlen(Client) ->
-    xxx.
+hlen(Client, Key) ->
+    ?term(redis_client:request(Client, {"HLEN", [Key]})).
 
 %%--------------------------------------------------------------------
-%% @doc
+%% @doc Returns the values associated with Fields in the hash stored at Key.
 %%
-%% Redis command: [http://redis.io/commands/xxx XXX]
+%% Fields must contain at least one element.
 %%
-%% @spec
+%% Redis command: [http://redis.io/commands/hmget HMGET]
+%%
+%% @spec hmget(Client, Key, Fields) -> [stored_value() | undefined]
+%% Client = client()
+%% Key = key()
+%% Fields = [field()]
 %% @end
 %%--------------------------------------------------------------------
 
-hmget(Client) ->
-    xxx.
+hmget(Client, Key, Fields) when length(Fields) > 0 ->
+    ?maybe_term(redis_client:request(Client, {"HMGET", [Key|Fields]})).
 
 %%--------------------------------------------------------------------
-%% @doc
+%% @doc Sets the specified fields to their respective values in the
+%% hash stored at Key.
 %%
-%% Redis command: [http://redis.io/commands/xxx XXX]
+%% FieldValues must contain at least one element.
 %%
-%% @spec
+%% Redis command: [http://redis.io/commands/hmset HMSET]
+%%
+%% @spec hmset(Client, Key, FieldValues) -> ok
+%% Client = client()
+%% Key = key()
+%% FieldValues = [{field(), value()}]
 %% @end
 %%--------------------------------------------------------------------
 
-hmset(Client) ->
-    xxx.
+hmset(Client, Key, FieldValues) when length(FieldValues) > 0 ->
+    ?ok(redis_client:request(
+          Client, {"HMSET", [Key|field_value_args(FieldValues)]})).
 
 %%--------------------------------------------------------------------
-%% @doc
+%% @doc Sets field in the hash stored at key to value.
 %%
-%% Redis command: [http://redis.io/commands/xxx XXX]
+%% Redis command: [http://redis.io/commands/hset HSET]
 %%
-%% @spec
+%% @spec hset(Client, Key, Field, Value) -> boolean()
+%% Client = client()
+%% Key = key()
+%% Field = field()
+%% Value = value()
 %% @end
 %%--------------------------------------------------------------------
 
-hset(Client) ->
-    xxx.
+hset(Client, Key, Field, Value) ->
+    ?bool(redis_client:request(Client, {"HSET", [Key, Field, Value]})).
 
 %%--------------------------------------------------------------------
-%% @doc
+%% @doc Sets Field in the hash stored at Key to Value, only if Field
+%% does not yet exist.
 %%
-%% Redis command: [http://redis.io/commands/xxx XXX]
+%% Redis command: [http://redis.io/commands/hsetnx HSETNX]
 %%
-%% @spec
+%% @spec hsetnx(Client, Key, Field, Value) -> boolean()
+%% Client = client()
+%% Key = key()
+%% Field = field()
+%% Value = value()
 %% @end
 %%--------------------------------------------------------------------
 
-hsetnx(Client) ->
-    xxx.
+hsetnx(Client, Key, Field, Value) ->
+    ?bool(redis_client:request(Client, {"HSETNX", [Key, Field, Value]})).
 
 %%--------------------------------------------------------------------
-%% @doc
+%% @doc Returns all values in the hash stored at Key.
 %%
-%% Redis command: [http://redis.io/commands/xxx XXX]
+%% Redis command: [http://redis.io/commands/hvals HVALS]
 %%
-%% @spec
+%% @spec hvals(Client, Key) -> [stored_value()]
+%% Client = client()
+%% Key = key()
 %% @end
 %%--------------------------------------------------------------------
 
-hvals(Client) ->
-    xxx.
+hvals(Client, Key) ->
+    ?term(redis_client:request(Client, {"HVALS", [Key]})).
 
 %%--------------------------------------------------------------------
 %% @doc Get information and stantistics about the server.
@@ -1418,64 +1467,85 @@ info(Client) ->
     bulk_proplist(?term(redis_client:request(Client, {"INFO", []}))).
 
 %%--------------------------------------------------------------------
-%% @doc
+%% @doc Returns the values of all specified keys.
 %%
-%% Redis command: [http://redis.io/commands/xxx XXX]
+%% Keys must contain at least one element.
 %%
-%% @spec
+%% Redis command: [http://redis.io/commands/mget MGET]
+%%
+%% @spec mget(Client, Keys) -> [stored_value()]
+%% Client = client()
+%% Keys = [key()]
 %% @end
 %%--------------------------------------------------------------------
 
-mget(Client) ->
-    xxx.
+mget(Client, Keys) when length(Keys) > 0 ->
+    ?term(redis_client:request(Client, {"MGET", Keys})).
 
 %%--------------------------------------------------------------------
-%% @doc
+%% @doc This function is not implemented but is listed here for
+%% completeness.
 %%
-%% Redis command: [http://redis.io/commands/xxx XXX]
+%% Use a telnet session to monitor the server.
 %%
-%% @spec
+%% Redis command: [http://redis.io/commands/monitor MONITOR]
+%%
+%% @spec monitor(Client) -> any()
 %% @end
 %%--------------------------------------------------------------------
 
-monitor(Client) ->
-    xxx.
+monitor(_Client) ->
+    error({not_implemented, "use a telnet session to monitor a server"}).
 
 %%--------------------------------------------------------------------
-%% @doc
+%% @doc Move Key from the currently selected database to the specified
+%% destination database.
 %%
-%% Redis command: [http://redis.io/commands/xxx XXX]
+%% Redis command: [http://redis.io/commands/move MOVE]
 %%
-%% @spec
+%% @spec move(Client, Key, Destination) -> boolean()
+%% Client = client()
+%% Key = key()
+%% Destination = integer()
 %% @end
 %%--------------------------------------------------------------------
 
-move(Client) ->
-    xxx.
+move(Client, Key, Destination) when is_integer(Destination) ->
+    ?bool(redis_client:request(Client, {"MOVE", [Key, Destination]})).
 
 %%--------------------------------------------------------------------
-%% @doc
+%% @doc Sets the given keys to their respective values.
 %%
-%% Redis command: [http://redis.io/commands/xxx XXX]
+%% KeyValues must contain at least one element.
 %%
-%% @spec
+%% Redis command: [http://redis.io/commands/mset MSET]
+%%
+%% @spec mset(Client, KeyValues) -> ok
+%% Client = client()
+%% KeyValues = [{key(), value()}]
 %% @end
 %%--------------------------------------------------------------------
 
-mset(Client) ->
-    xxx.
+mset(Client, KeyValues) ->
+    ?ok(redis_client:request(Client, {"MSET", key_value_args(KeyValues)})).
 
 %%--------------------------------------------------------------------
-%% @doc
+%% @doc Sets the given keys to their respective values only if none if
+%% specified keys exist.
 %%
-%% Redis command: [http://redis.io/commands/xxx XXX]
+%% KeyValues must contain at least one element.
 %%
-%% @spec
+%% Redis command: [http://redis.io/commands/msetnx MSETNX]
+%%
+%% @spec mset(Client, KeyValues) -> boolean
+%% Client = client()
+%% KeyValues = [{key(), value()}]
 %% @end
 %%--------------------------------------------------------------------
 
-msetnx(Client) ->
-    xxx.
+msetnx(Client, KeyValues) ->
+    ?bool(redis_client:request(
+            Client, {"MSETNX", key_value_args(KeyValues)})).
 
 %%--------------------------------------------------------------------
 %% @doc Marks the start of a transaction block.
@@ -1604,7 +1674,7 @@ randomkey(Client) ->
 %% @end
 %%--------------------------------------------------------------------
 
-save(Client) ->
+save(_Client) ->
     error(not_implemented).
 
 %%--------------------------------------------------------------------
@@ -1639,7 +1709,7 @@ scard(Client, Key) ->
 %%--------------------------------------------------------------------
 
 sdiff(Client, SetKeys) when length(SetKeys) > 1 ->
-    ?term(redis_client:request(Client, {"SDIFF", SetKeys})).    
+    ?term(redis_client:request(Client, {"SDIFF", SetKeys})).
 
 %%--------------------------------------------------------------------
 %% @doc Store the result of `sdiff' in Destination rather than return it.
@@ -1655,7 +1725,7 @@ sdiff(Client, SetKeys) when length(SetKeys) > 1 ->
 
 sdiffstore(Client, Destination, SetKeys) when length(SetKeys) >  1 ->
     ?term(redis_client:request(
-            Client, {"SDIFFSTORE", [Destination|SetKeys]})).    
+            Client, {"SDIFFSTORE", [Destination|SetKeys]})).
 
 %%--------------------------------------------------------------------
 %% @doc Select the DB with having the specified zero-based numeric index.
@@ -1663,6 +1733,8 @@ sdiffstore(Client, Destination, SetKeys) when length(SetKeys) >  1 ->
 %% Redis command: [http://redis.io/commands/select SELECT]
 %%
 %% @spec select(Client, DB) -> ok
+%% Client = client()
+%% DB = integer()
 %% @end
 %%--------------------------------------------------------------------
 
@@ -1755,7 +1827,7 @@ shutdown(Client) ->
 %%--------------------------------------------------------------------
 
 sinter(Client, SetKeys) when length(SetKeys) > 1 ->
-    ?term(redis_client:request(Client, {"SINTER", SetKeys})). 
+    ?term(redis_client:request(Client, {"SINTER", SetKeys})).
 
 %%--------------------------------------------------------------------
 %% @doc Same as `setinter' but stores intersection in Destination.
@@ -1771,7 +1843,7 @@ sinter(Client, SetKeys) when length(SetKeys) > 1 ->
 
 sinterstore(Client, Destination, SetKeys) ->
     ?term(redis_client:request(
-            Client, {"SINTERSTORE", [Destination|SetKeys]})). 
+            Client, {"SINTERSTORE", [Destination|SetKeys]})).
 
 %%--------------------------------------------------------------------
 %% @doc Configures the server's slave settings.
@@ -1905,7 +1977,7 @@ srandmember(Client, Key) ->
 %%--------------------------------------------------------------------
 
 strlen(Client, Key) ->
-    ?term(redis_client:request(Client, {"STRLEN", [Key]})).    
+    ?term(redis_client:request(Client, {"STRLEN", [Key]})).
 
 %%--------------------------------------------------------------------
 %% @doc Subscribes the client to the specified channels.
@@ -1933,7 +2005,7 @@ subscribe(Client, Channels) ->
 %%--------------------------------------------------------------------
 
 sunion(Client, SetKeys) when length(SetKeys) > 1 ->
-    ?term(redis_client:request(Client, {"SUNION", SetKeys})).    
+    ?term(redis_client:request(Client, {"SUNION", SetKeys})).
 
 %%--------------------------------------------------------------------
 %% @doc Same as `sunion' except that the result is stored at Destination.
@@ -1949,7 +2021,7 @@ sunion(Client, SetKeys) when length(SetKeys) > 1 ->
 
 sunionstore(Client, Destination, SetKeys) when length(SetKeys) >  1 ->
     ?term(redis_client:request(
-            Client, {"SUNIONSTORE", [Destination|SetKeys]})).    
+            Client, {"SUNIONSTORE", [Destination|SetKeys]})).
 
 %%--------------------------------------------------------------------
 %% @doc This is not implemented yet - not sure what this does.
@@ -1960,7 +2032,7 @@ sunionstore(Client, Destination, SetKeys) when length(SetKeys) >  1 ->
 %% @end
 %%--------------------------------------------------------------------
 
-sync(Client) ->
+sync(_Client) ->
     error(not_implemented).
 
 %%--------------------------------------------------------------------
@@ -2018,16 +2090,16 @@ unsubscribe(Client, Channels) ->
     ?ok(redis_client:request(Client, {"UNSUBSCRIBE", Channels})).
 
 %%--------------------------------------------------------------------
-%% @doc
+%% @doc Flushes all the previously watched keys for a transaction.
 %%
-%% Redis command: [http://redis.io/commands/xxx XXX]
+%% Redis command: [http://redis.io/commands/unwatch UNWATCH]
 %%
-%% @spec
+%% @spec unwatch
 %% @end
 %%--------------------------------------------------------------------
 
 unwatch(Client) ->
-    xxx.
+    ?term(redis_client:request(Client, {"", []})).
 
 %%--------------------------------------------------------------------
 %% @doc
@@ -2039,7 +2111,7 @@ unwatch(Client) ->
 %%--------------------------------------------------------------------
 
 watch(Client) ->
-    xxx.
+    ?term(redis_client:request(Client, {"", []})).
 
 %%--------------------------------------------------------------------
 %% @doc
@@ -2051,7 +2123,7 @@ watch(Client) ->
 %%--------------------------------------------------------------------
 
 zadd(Client) ->
-    xxx.
+    ?term(redis_client:request(Client, {"", []})).
 
 %%--------------------------------------------------------------------
 %% @doc
@@ -2063,7 +2135,7 @@ zadd(Client) ->
 %%--------------------------------------------------------------------
 
 zcard(Client) ->
-    xxx.
+    ?term(redis_client:request(Client, {"", []})).
 
 %%--------------------------------------------------------------------
 %% @doc
@@ -2075,7 +2147,7 @@ zcard(Client) ->
 %%--------------------------------------------------------------------
 
 zcount(Client) ->
-    xxx.
+    ?term(redis_client:request(Client, {"", []})).
 
 %%--------------------------------------------------------------------
 %% @doc
@@ -2087,7 +2159,7 @@ zcount(Client) ->
 %%--------------------------------------------------------------------
 
 zincrby(Client) ->
-    xxx.
+    ?term(redis_client:request(Client, {"", []})).
 
 %%--------------------------------------------------------------------
 %% @doc
@@ -2099,7 +2171,7 @@ zincrby(Client) ->
 %%--------------------------------------------------------------------
 
 zinterstore(Client) ->
-    xxx.
+    ?term(redis_client:request(Client, {"", []})).
 
 %%--------------------------------------------------------------------
 %% @doc
@@ -2111,7 +2183,7 @@ zinterstore(Client) ->
 %%--------------------------------------------------------------------
 
 zrange(Client) ->
-    xxx.
+    ?term(redis_client:request(Client, {"", []})).
 
 %%--------------------------------------------------------------------
 %% @doc
@@ -2123,7 +2195,7 @@ zrange(Client) ->
 %%--------------------------------------------------------------------
 
 zrangebyscore(Client) ->
-    xxx.
+    ?term(redis_client:request(Client, {"", []})).
 
 %%--------------------------------------------------------------------
 %% @doc
@@ -2135,7 +2207,7 @@ zrangebyscore(Client) ->
 %%--------------------------------------------------------------------
 
 zrank(Client) ->
-    xxx.
+    ?term(redis_client:request(Client, {"", []})).
 
 %%--------------------------------------------------------------------
 %% @doc
@@ -2147,7 +2219,7 @@ zrank(Client) ->
 %%--------------------------------------------------------------------
 
 zrem(Client) ->
-    xxx.
+    ?term(redis_client:request(Client, {"", []})).
 
 %%--------------------------------------------------------------------
 %% @doc
@@ -2159,7 +2231,7 @@ zrem(Client) ->
 %%--------------------------------------------------------------------
 
 zremrangebyrank(Client) ->
-    xxx.
+    ?term(redis_client:request(Client, {"", []})).
 
 %%--------------------------------------------------------------------
 %% @doc
@@ -2171,7 +2243,7 @@ zremrangebyrank(Client) ->
 %%--------------------------------------------------------------------
 
 zremrangebyscore(Client) ->
-    xxx.
+    ?term(redis_client:request(Client, {"", []})).
 
 %%--------------------------------------------------------------------
 %% @doc
@@ -2183,7 +2255,7 @@ zremrangebyscore(Client) ->
 %%--------------------------------------------------------------------
 
 zrevrange(Client) ->
-    xxx.
+    ?term(redis_client:request(Client, {"", []})).
 
 %%--------------------------------------------------------------------
 %% @doc
@@ -2195,7 +2267,7 @@ zrevrange(Client) ->
 %%--------------------------------------------------------------------
 
 zrevrangebyscore(Client) ->
-    xxx.
+    ?term(redis_client:request(Client, {"", []})).
 
 %%--------------------------------------------------------------------
 %% @doc
@@ -2207,7 +2279,7 @@ zrevrangebyscore(Client) ->
 %%--------------------------------------------------------------------
 
 zrevrank(Client) ->
-    xxx.
+    ?term(redis_client:request(Client, {"", []})).
 
 %%--------------------------------------------------------------------
 %% @doc
@@ -2219,7 +2291,7 @@ zrevrank(Client) ->
 %%--------------------------------------------------------------------
 
 zscore(Client) ->
-    xxx.
+    ?term(redis_client:request(Client, {"", []})).
 
 %%--------------------------------------------------------------------
 %% @doc
@@ -2231,7 +2303,7 @@ zscore(Client) ->
 %%--------------------------------------------------------------------
 
 zunionstore(Client) ->
-    xxx.
+    ?term(redis_client:request(Client, {"", []})).
 
 %%%===================================================================
 %%% Internal functions
@@ -2279,6 +2351,19 @@ binary_to_propval(Bin) ->
             end
     end.
 
+multi_hashlist(Values) ->
+    multi_hashlist(Values, []).
+
+multi_hashlist([], Acc) -> lists:reverse(Acc);
+multi_hashlist([Name, Val|Rest], Acc) ->
+    multi_hashlist(Rest, [{Name, Val}|Acc]).
+
+field_value_args(FieldValues) ->
+    lists:concat([[Field, Value] || {Field, Value} <- FieldValues]).
+
+key_value_args(KeyValues) ->
+    lists:concat([[Key, Value] || {Key, Value} <- KeyValues]).
+
 object_subcommand(A) when is_atom(A) ->
     atom_to_list(A).
 
@@ -2305,3 +2390,5 @@ sort_args([{store, Dest}|Rest], Acc) ->
     sort_args(Rest, [["STORE", Dest]|Acc]);
 sort_args([Other|_], _) ->
     error({badarg, Other}).
+
+%%-compile(export_all).
