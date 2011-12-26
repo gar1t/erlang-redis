@@ -11,6 +11,10 @@
 %%% @type stored_value() = binary()
 %%% @type stored_key() = binary()
 %%% @type stored_field() = binary()
+%%% @type scored_member() = {Member, Score}
+%%% @type score() = number()
+%%% @type member() = value()
+%%% @type aggregate() = [min | max | sum]
 %%% @end
 -module(redis).
 
@@ -134,23 +138,31 @@
          unsubscribe/1,
          unsubscribe/2,
          unwatch/1,
-         watch/1,
-         zadd/1,
-         zcard/1,
-         zcount/1,
-         zincrby/1,
-         zinterstore/1,
-         zrange/1,
-         zrangebyscore/1,
-         zrank/1,
-         zrem/1,
-         zremrangebyrank/1,
-         zremrangebyscore/1,
-         zrevrange/1,
-         zrevrangebyscore/1,
-         zrevrank/1,
-         zscore/1,
-         zunionstore/1
+         watch/2,
+         zmadd/3,
+         zadd/3,
+         zcard/2,
+         zcount/4,
+         zincrby/4,
+         zinterstore/3,
+         zinterstore/4,
+         zrange/4,
+         zrange/5,
+         zrangebyscore/4,
+         zrangebyscore/5,
+         zrank/3,
+         zmrem/3,
+         zrem/3,
+         zremrangebyrank/4,
+         zremrangebyscore/4,
+         zrevrange/4,
+         zrevrange/5,
+         zrevrangebyscore/4,
+         zrevrangebyscore/5,
+         zrevrank/3,
+         zscore/3,
+         zunionstore/3,
+         zunionstore/4
         ]).
 
 -define(ok(_Val),
@@ -187,7 +199,6 @@
 %%--------------------------------------------------------------------
 %% @doc Connect to a locally running Redis server.
 %% @spec connect() -> {ok, Client}  | {error, Reason}
-%% Client = client()
 %% @equiv connect([])
 %% @end
 %%--------------------------------------------------------------------
@@ -803,7 +814,7 @@ blpop(Client, Key, Timeout) ->
 
 bmlpop(Client, Keys, Timeout) ->
     ?maybe_term(redis_client:request(
-                  Client, {"BLPOP", Keys ++ [Timeout]},
+                  Client, {"BLPOP", lits:append(Keys, [Timeout])},
                   request_timeout(Timeout))).
 
 %%--------------------------------------------------------------------
@@ -1022,7 +1033,7 @@ brpop(Client, Key, Timeout) ->
 
 bmrpop(Client, Keys, Timeout) ->
     ?maybe_term(redis_client:request(
-                  Client, {"BRPOP", Keys ++ [Timeout]},
+                  Client, {"BRPOP", lists:append(Keys, [Timeout])},
                   request_timeout(Timeout))).
 
 %%--------------------------------------------------------------------
@@ -2094,216 +2105,458 @@ unsubscribe(Client, Channels) ->
 %%
 %% Redis command: [http://redis.io/commands/unwatch UNWATCH]
 %%
-%% @spec unwatch
+%% @spec unwatch(Client) -> ok
+%% Client = client()
 %% @end
 %%--------------------------------------------------------------------
 
 unwatch(Client) ->
-    ?term(redis_client:request(Client, {"", []})).
+    ?ok(redis_client:request(Client, {"UNWATCH", []})).
 
 %%--------------------------------------------------------------------
-%% @doc
+%% @doc Marks the given keys to be watched for conditional execution
+%% of a transaction.
 %%
-%% Redis command: [http://redis.io/commands/xxx XXX]
+%% Redis command: [http://redis.io/commands/watch WATCH]
 %%
-%% @spec
+%% @spec watch(Client, Keys) -> ok
+%% Client = client()
+%% Keys = [key()]
 %% @end
 %%--------------------------------------------------------------------
 
-watch(Client) ->
-    ?term(redis_client:request(Client, {"", []})).
+watch(Client, Keys) when length(Keys) > 0 ->
+    ?ok(redis_client:request(Client, {"WATCH", Keys})).
 
 %%--------------------------------------------------------------------
-%% @doc
+%% @doc Adds all the specified members with the specified scores to
+%% the sorted set stored at Key.
 %%
-%% Redis command: [http://redis.io/commands/xxx XXX]
+%% Redis command: [http://redis.io/commands/zadd ZADD]
 %%
-%% @spec
+%% @spec zadd(Client, Key, Members) -> integer()
+%% Client = client()
+%% Key = key()
+%% Members = [scored_member()]
 %% @end
 %%--------------------------------------------------------------------
 
-zadd(Client) ->
-    ?term(redis_client:request(Client, {"", []})).
+zmadd(Client, Key, Members) when length(Members) > 0 ->
+    ?term(redis_client:request(
+            Client, {"ZADD", [Key|scored_members_args(Members)]})).
 
 %%--------------------------------------------------------------------
-%% @doc
+%% @doc Adds the specified member with the specified score to the
+%% sorted set stored at Key.
 %%
-%% Redis command: [http://redis.io/commands/xxx XXX]
+%% Redis command: [http://redis.io/commands/zadd ZADD]
 %%
-%% @spec
+%% @spec zadd(Client, Key, {Member, Score}) -> integer()
+%% @equiv zmadd(Client, Key, [{Member, Score}])
 %% @end
 %%--------------------------------------------------------------------
 
-zcard(Client) ->
-    ?term(redis_client:request(Client, {"", []})).
+zadd(Client, Key, {Member, Score}) ->
+    zmadd(Client, Key, [{Score, Member}]).
 
 %%--------------------------------------------------------------------
-%% @doc
+%% @doc Returns the number of elements of the sorted set stored at Key.
 %%
-%% Redis command: [http://redis.io/commands/xxx XXX]
+%% Redis command: [http://redis.io/commands/zcard ZCARD]
 %%
-%% @spec
+%% @spec zcard(Client, Key) -> integer()
+%% Client = client()
+%% Key = key()
 %% @end
 %%--------------------------------------------------------------------
 
-zcount(Client) ->
-    ?term(redis_client:request(Client, {"", []})).
+zcard(Client, Key) ->
+    ?term(redis_client:request(Client, {"ZCARD", [Key]})).
 
 %%--------------------------------------------------------------------
-%% @doc
+%% @doc Returns the number of elements in the sorted set at Key with
+%% a score between Min and Max.
 %%
-%% Redis command: [http://redis.io/commands/xxx XXX]
+%% Redis command: [http://redis.io/commands/zcount ZCOUNT]
 %%
-%% @spec
+%% @spec zcount(Client, Key, Min, Max) -> integer()
+%% Client = client()
+%% Key = key()
+%% Min = number()
+%% Max = number()
 %% @end
 %%--------------------------------------------------------------------
 
-zincrby(Client) ->
-    ?term(redis_client:request(Client, {"", []})).
+zcount(Client, Key, Min, Max) ->
+    ?term(redis_client:request(
+            Client, {"ZCOUNT", [Key, format_min_score(Min),
+                                format_max_score(Max)]})).
 
 %%--------------------------------------------------------------------
-%% @doc
+%% @doc Increments the score of member in the sorted set stored at
+%% Key by Increment.
 %%
-%% Redis command: [http://redis.io/commands/xxx XXX]
+%% Redis command: [http://redis.io/commands/zincrby ZINCRBY]
 %%
-%% @spec
+%% @spec zincrby(Client, Key, Increment, Member) -> score()
+%% Client = client()
+%% Key = key()
+%% Increment = number()
+%% Member = value()
 %% @end
 %%--------------------------------------------------------------------
 
-zinterstore(Client) ->
-    ?term(redis_client:request(Client, {"", []})).
+zincrby(Client, Key, Increment, Member) ->
+    binary_to_number(
+      ?term(redis_client:request(
+              Client, {"ZINCRBY", [Key, format_number(Increment), Member]}))).
 
 %%--------------------------------------------------------------------
-%% @doc
+%% @doc Computes the intersection of numkeys sorted sets given by the
+%% specified keys, and stores the result in destination.
 %%
-%% Redis command: [http://redis.io/commands/xxx XXX]
+%% Redis command: [http://redis.io/commands/zinterstore ZINTERSTORE]
 %%
-%% @spec
+%% @spec zinterstore(Client, Destination, Keys) -> integer()
+%% @equiv zinterstore(Client, Destination, Keys, [])
 %% @end
 %%--------------------------------------------------------------------
 
-zrange(Client) ->
-    ?term(redis_client:request(Client, {"", []})).
+zinterstore(Client, Destination, Keys) when length(Keys) > 0 ->
+    zinterstore(Client, Destination, Keys, []).
 
 %%--------------------------------------------------------------------
-%% @doc
+%% @doc Computes the intersection of numkeys sorted sets given by the
+%% specified keys, and stores the result in destination.
 %%
-%% Redis command: [http://redis.io/commands/xxx XXX]
+%% Redis command: [http://redis.io/commands/zinterstore ZINTERSTORE]
 %%
-%% @spec
+%% @spec zinterstore(Client, Destination, Keys, Options) -> integer()
+%% Client = client()
+%% Keys = [key() | {key(), number()}]
+%% Options = [aggregate()]
 %% @end
 %%--------------------------------------------------------------------
 
-zrangebyscore(Client) ->
-    ?term(redis_client:request(Client, {"", []})).
+zinterstore(Client, Destination, Keys, Options) when length(Keys) > 0 ->
+    ?term(redis_client:request(
+            Client, {"ZINTERSTORE", lists:append(
+                                      [[Destination],
+                                       weighted_keys_args(Keys),
+                                       aggregate_args(Options)])})).
 
 %%--------------------------------------------------------------------
-%% @doc
+%% @doc Returns the specified range of elements in the sorted set
+%% stored at Key.
 %%
-%% Redis command: [http://redis.io/commands/xxx XXX]
+%% Redis command: [http://redis.io/commands/zrange ZRANGE]
 %%
-%% @spec
+%% @spec zrange(Client, Key, Start, Stop) -> Result
+%% @equiv zrange(Client, Key, Start, Stop, [])
 %% @end
 %%--------------------------------------------------------------------
 
-zrank(Client) ->
-    ?term(redis_client:request(Client, {"", []})).
+zrange(Client, Key, Start, Stop) ->
+    zrange(Client, Key, Start, Stop, []).
 
 %%--------------------------------------------------------------------
-%% @doc
+%% @doc Returns the specified range of elements in the sorted set
+%% stored at Key.
 %%
-%% Redis command: [http://redis.io/commands/xxx XXX]
+%% If withscores is provided as an option, the result is a list of tuples
+%% consisting of the member and its score. If withscores is not provided,
+%% the result is a list of the members.
 %%
-%% @spec
+%% Redis command: [http://redis.io/commands/zrange ZRANGE]
+%%
+%% @spec zrange(Client, Key, Start, Stop, Options) -> Result
+%% Client = client()
+%% Key = key()
+%% Start = integer()
+%% Stop = integer()
+%% Options = [withscores]
+%% Result = [stored_value() | {stored_value(), score()}]
 %% @end
 %%--------------------------------------------------------------------
 
-zrem(Client) ->
-    ?term(redis_client:request(Client, {"", []})).
+zrange(Client, Key, Start, Stop, Options) ->
+    zrange_members(
+      ?term(redis_client:request(
+              Client, {"ZRANGE", lists:append(
+                                   [Key, Start, Stop],
+                                   withscores_args(Options))})),
+      Options).
 
 %%--------------------------------------------------------------------
-%% @doc
+%% @doc Returns all the elements in the sorted set at Key with a
+%% score between Min and Max.
 %%
-%% Redis command: [http://redis.io/commands/xxx XXX]
+%% Redis command: [http://redis.io/commands/zrangebyscore ZRANGEBYSCORE]
 %%
-%% @spec
+%% @spec zrangebyscore(Client, Key, Min, Max) -> Result
+%% @equiv zrangebyscore(Client, Key, Min, Max, [])
 %% @end
 %%--------------------------------------------------------------------
 
-zremrangebyrank(Client) ->
-    ?term(redis_client:request(Client, {"", []})).
+zrangebyscore(Client, Key, Min, Max) ->
+    zrangebyscore(Client, Key, Min, Max, []).
 
 %%--------------------------------------------------------------------
-%% @doc
+%% @doc Returns all the elements in the sorted set at Key with a
+%% score between Min and Max.
 %%
-%% Redis command: [http://redis.io/commands/xxx XXX]
+%% Redis command: [http://redis.io/commands/zrangebyscore ZRANGEBYSCORE]
 %%
-%% @spec
+%% @spec zrangebyscore(Client, Key, Min, Max, Options) -> Result
+%% Client = client()
+%% Key = key()
+%% Min = score()
+%% Max = score()
+%% Options = [withscores | {limit, Offset, Count}]
+%% Offset = integer()
+%% Count = integer()
 %% @end
 %%--------------------------------------------------------------------
 
-zremrangebyscore(Client) ->
-    ?term(redis_client:request(Client, {"", []})).
+zrangebyscore(Client, Key, Min, Max, Options) ->
+    zrange_members(
+      ?term(redis_client:request(
+              Client, {"ZRANGEBYSCORE", lists:append(
+                                          [[Key, format_min_score(Min),
+                                            format_max_score(Max)],
+                                           withscores_args(Options),
+                                           limit_args(Options)])})),
+      Options).
 
 %%--------------------------------------------------------------------
-%% @doc
+%% @doc Returns the rank of member in the sorted set stored at Key.
 %%
-%% Redis command: [http://redis.io/commands/xxx XXX]
+%% Redis command: [http://redis.io/commands/zrank ZRANK]
 %%
-%% @spec
+%% @spec zrank(Client, Key, Member) -> {ok, integer()} | undefined
+%% Client = client()
+%% Key = key()
+%% Member = member()
 %% @end
 %%--------------------------------------------------------------------
 
-zrevrange(Client) ->
-    ?term(redis_client:request(Client, {"", []})).
+zrank(Client, Key, Member) ->
+    ?maybe_term(redis_client:request(Client, {"ZRANK", [Key, Member]})).
 
 %%--------------------------------------------------------------------
-%% @doc
+%% @doc Removes the specified members from the sorted set stored at Key.
 %%
-%% Redis command: [http://redis.io/commands/xxx XXX]
+%% Redis command: [http://redis.io/commands/zrem ZREM]
 %%
-%% @spec
+%% @spec zmrem(Client, Key, Members) -> integer()
+%% Client = client()
+%% Key = key()
+%% Members = [member()]
 %% @end
 %%--------------------------------------------------------------------
 
-zrevrangebyscore(Client) ->
-    ?term(redis_client:request(Client, {"", []})).
+zmrem(Client, Key, Members) when length(Members) > 0 ->
+    ?term(redis_client:request(Client, {"ZREM", [Key|Members]})).
+
 
 %%--------------------------------------------------------------------
-%% @doc
+%% @doc Removes a single member from an ordered set.
 %%
-%% Redis command: [http://redis.io/commands/xxx XXX]
+%% Redis command: [http://redis.io/commands/zrem ZREM]
 %%
-%% @spec
+%% @spec zrem(Client, Key, Member) -> integer()
+%% @equiv zmrem(Client, Key, [Member])
 %% @end
 %%--------------------------------------------------------------------
 
-zrevrank(Client) ->
-    ?term(redis_client:request(Client, {"", []})).
+zrem(Client, Key, Member) ->
+    ?term(redis_client:request(Client, {"ZREM", [Key, Member]})).
 
 %%--------------------------------------------------------------------
-%% @doc
+%% @doc Removes all elements in the sorted set stored at Key with rank
+%% between Start and Stop.
 %%
-%% Redis command: [http://redis.io/commands/xxx XXX]
+%% Redis command: [http://redis.io/commands/zremrangebyrank ZREMRANGEBYRANK]
 %%
-%% @spec
+%% @spec zremrangebyrank(Client, Key, Start, Stop) -> integer()
+%% Client = client()
+%% Key = key()
+%% Start = integer()
+%% Stop = integer()
 %% @end
 %%--------------------------------------------------------------------
 
-zscore(Client) ->
-    ?term(redis_client:request(Client, {"", []})).
+zremrangebyrank(Client, Key, Start, Stop) ->
+    ?term(redis_client:request(
+            Client, {"ZREMRANGEBYRANK", [Key, Start, Stop]})).
 
 %%--------------------------------------------------------------------
-%% @doc
+%% @doc Removes all elements in the sorted set stored at Key with a
+%% score between Min and Max (inclusive).
 %%
-%% Redis command: [http://redis.io/commands/xxx XXX]
+%% Redis command: [http://redis.io/commands/zremrangebyscore ZREMRANGEBYSCORE]
 %%
-%% @spec
+%% @spec zremrangebyscore(Client, Key, Min, Max) -> integer()
+%% Client = client()
+%% Key = key()
+%% Min = number()
+%% Max = number()
 %% @end
 %%--------------------------------------------------------------------
 
-zunionstore(Client) ->
-    ?term(redis_client:request(Client, {"", []})).
+zremrangebyscore(Client, Key, Min, Max) ->
+    ?term(redis_client:request(
+            Client, {"ZREMRANGEBYSCORE", [Key, format_min_score(Min),
+                                          format_max_score(Max)]})).
+
+%%--------------------------------------------------------------------
+%% @doc Returns the specified range of elements in the sorted set
+%% stored at Key.
+%%
+%% Redis command: [http://redis.io/commands/zrevrange ZREVRANGE]
+%%
+%% @spec zrevrange(Client, Key, Start, Stop, Options) -> Result
+%% @equiv zrevrange(Client, Key, Start, Stop, []).
+%% @end
+%%--------------------------------------------------------------------
+
+zrevrange(Client, Key, Start, Stop) ->
+    zrevrange(Client, Key, Start, Stop, []).
+
+%%--------------------------------------------------------------------
+%% @doc Returns the specified range of elements in the sorted set
+%% stored at Key.
+%%
+%% Redis command: [http://redis.io/commands/zrevrange ZREVRANGE]
+%%
+%% @spec zrevrange(Client, Key, Start, Stop, Options) -> Result
+%% Client = client()
+%% Key = key()
+%% Start = integer()
+%% Stop = integer()
+%% Options = [withscores]
+%% Result = [stored_value() | {stored_score(), value()}]
+%% @end
+%%--------------------------------------------------------------------
+
+zrevrange(Client, Key, Start, Stop, Options) ->
+    zrange_members(
+      ?term(redis_client:request(
+              Client, {"ZREVRANGE", lists:append(
+                                      [Key, Start, Stop],
+                                      withscores_args(Options))})),
+      Options).
+
+%%--------------------------------------------------------------------
+%% @doc Returns all the elements in the sorted set at Key with a
+%% score between Max and Min.
+%%
+%% Redis command: [http://redis.io/commands/zrevrangebyscore ZREVRANGEBYSCORE]
+%%
+%% @spec zrevrangebyscore(Client, Key, Max, Min, Options) -> Result
+%% @equiv zrevrangebyscore(Client, Key, Max, Min, [])
+%% @end
+%%--------------------------------------------------------------------
+
+zrevrangebyscore(Client, Key, Max, Min) ->
+    zrevrangebyscore(Client, Key, Max, Min, []).
+
+%%--------------------------------------------------------------------
+%% @doc Returns all the elements in the sorted set at Key with a
+%% score between Max and Min.
+%%
+%% Redis command: [http://redis.io/commands/zrevrangebyscore ZREVRANGEBYSCORE]
+%%
+%% @spec zrevrangebyscore(Client, Key, Max, Min, Options) -> Result
+%% Client = client()
+%% Key = key()
+%% Max = number()
+%% Min = number()
+%% Options = [withscores | {limit, Offset, Count}]
+%% Offset = integer()
+%% Count = integer()
+%% Result = [stored_value() | {stored_score(), value()}]
+%% @end
+%%--------------------------------------------------------------------
+
+zrevrangebyscore(Client, Key, Max, Min, Options) ->
+    zrange_members(
+      ?term(redis_client:request(
+              Client, {"ZREVRANGEBYSCORE", lists:append(
+                                             [[Key, format_max_score(Max),
+                                               format_min_score(Min)],
+                                              withscores_args(Options),
+                                              limit_args(Options)])})),
+      Options).
+
+%%--------------------------------------------------------------------
+%% @doc Returns the rank of member in the sorted set stored at Key,
+%% with the scores ordered from high to low.
+%%
+%% Redis command: [http://redis.io/commands/zrevrank ZREVRANK]
+%%
+%% @spec zrevrank(Client, Key, Member) -> {ok, integer()} | undefined
+%% Client = client()
+%% Key = key()
+%% Member = member()
+%% @end
+%%--------------------------------------------------------------------
+
+zrevrank(Client, Key, Member) ->
+    ?maybe_term(redis_client:request(Client, {"ZREVRANK", [Key, Member]})).
+
+%%--------------------------------------------------------------------
+%% @doc Returns the score of member in the sorted set at key.
+%%
+%% Redis command: [http://redis.io/commands/zscore ZSCORE]
+%%
+%% @spec zscore(Client, Key, Member) -> {ok, score()} | undefined
+%% Client = client()
+%% Key = key()
+%% Member = member()
+%% @end
+%%--------------------------------------------------------------------
+
+zscore(Client, Key, Member) ->
+    case ?maybe_term(redis_client:request(
+                       Client, {"ZSCORE", [Key, Member]})) of
+        {ok, Score} -> {ok, binary_to_number(Score)};
+        undefined -> undefined
+    end.
+
+%%--------------------------------------------------------------------
+%% @doc Computes the union of numkeys sorted sets given by the
+%% specified keys, and stores the result in Destination.
+%%
+%% Redis command: [http://redis.io/commands/zunionstore ZUNIONSTORE]
+%%
+%% @spec zunionstore(Client, Destination, Keys) -> integer()
+%% @equiv zunionstore(Client, Destination, Keys, [])
+%% @end
+%%--------------------------------------------------------------------
+
+zunionstore(Client, Destination, Keys) ->
+    zunionstore(Client, Destination, Keys, []).
+
+%%--------------------------------------------------------------------
+%% @doc Computes the union of numkeys sorted sets given by the
+%% specified keys, and stores the result in Destination.
+%%
+%% Redis command: [http://redis.io/commands/zunionstore ZUNIONSTORE]
+%%
+%% @spec zunionstore(Client, Destination, Keys, Options) -> integer()
+%% Client = client()
+%% Keys = [key() | {key(), number()}]
+%% Options = [aggregate()]
+%% @end
+%%--------------------------------------------------------------------
+
+zunionstore(Client, Destination, Keys, Options) when length(Keys) > 0 ->
+    ?term(redis_client:request(
+            Client, {"ZUNIONSTORE", lists:append(
+                                      [[Destination],
+                                       weighted_keys_args(Keys),
+                                       aggregate_args(Options)])})).
 
 %%%===================================================================
 %%% Internal functions
@@ -2391,4 +2644,69 @@ sort_args([{store, Dest}|Rest], Acc) ->
 sort_args([Other|_], _) ->
     error({badarg, Other}).
 
-%%-compile(export_all).
+scored_members_args(Members) ->
+    scored_members_args(Members, []).
+
+scored_members_args([], Acc) -> lists:concat(lists:reverse(Acc));
+scored_members_args([{Member, Score}|Rest], Acc) when is_number(Score) ->
+    scored_members_args(Rest, [[format_number(Score), Member]|Acc]);
+scored_members_args([Other|_], _) ->
+    error({badarg, Other}).
+
+format_number(I) when is_integer(I) -> list_to_binary(integer_to_list(I));
+format_number(F) when is_float(F) -> io_lib:format("~.8f", [F]);
+format_number(Other) -> Other.
+
+format_min_score(infinity) -> "-inf";
+format_min_score(Min) -> format_number(Min).
+
+format_max_score(infinity) -> "+inf";
+format_max_score(Max) -> format_number(Max).
+
+weighted_keys_args(Keys) ->
+    lists:append(
+      [[length(Keys)],
+       lists:map(fun weighted_key_key/1, Keys),
+       ["WEIGHTS"],
+       lists:map(fun weighted_key_weight/1, Keys)]).
+
+weighted_key_key({Key, _Weight}) -> Key;
+weighted_key_key(Key) -> Key.
+
+weighted_key_weight({_Key, Weight}) when is_number(Weight) ->
+    format_number(Weight);
+weighted_key_weight({_Key, Weight}) -> Weight;
+weighted_key_weight(_Key) -> "1".
+
+aggregate_args([]) -> [];
+aggregate_args([sum|_]) -> ["AGGREGATE", "SUM"];
+aggregate_args([min|_]) -> ["AGGREGATE", "MIN"];
+aggregate_args([max|_]) -> ["AGGREGATE", "MAX"];
+aggregate_args([_|Rest]) -> aggregate_args(Rest).
+
+withscores_args([]) -> [];
+withscores_args([withscores|_]) -> ["WITHSCORES"];
+withscores_args([_|Rest]) -> withscores_args(Rest).
+
+limit_args([]) -> [];
+limit_args([{limit, Offset, Count}|_]) -> ["LIMIT", Offset, Count];
+limit_args([_|Rest]) -> limit_args(Rest).
+
+zrange_members(ZRangeResult, Options) ->
+    case proplists:get_bool(withscores, Options) of
+        true -> members_with_score(ZRangeResult, []);
+        false -> ZRangeResult
+    end.
+
+members_with_score([], Acc) -> lists:reverse(Acc);
+members_with_score([Member, Score|Rest], Acc) ->
+    members_with_score(Rest, [{Member, binary_to_number(Score)}|Acc]).
+
+binary_to_number(B) ->
+    S = binary_to_list(B),
+    try list_to_integer(S) of
+        I -> I
+    catch
+        error:badarg ->
+            list_to_float(S)
+    end.
