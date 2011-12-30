@@ -3,11 +3,14 @@ Listfever is a "clone" of Amazon's Listmania.
 I initially tried to write Retwis as an example, but I'm not smart enough to
 understand the Retwis PHP source.
 
-Listfever lets you create lists. Big whoop! Or is it?
+Listfever lets you create lists. It makes good use of Redis. It also
+illustrates an 'e2` application, which is a full fledged OTP application, but
+much easier to read and write.
 
-In any event, Listfever makes good use of Redis. It also illustrates an 'e2`
-application, which is a full fledged OTP application, but much easier to read
-and write.
+* Status
+
+This application is currently just a stub. It won't compile as it requires an
+unpublished version of 'e2` (to be updated on github soon).
 
 * Dependencies
 
@@ -21,3 +24,60 @@ important role:
  | erlydtl    | Django template support                   |
 
 For dependency details, refer to the 'deps' section in rebar.config.
+* To Do / Issues
+
+** Redis API
+
+The Redis API is currently buried in the use of 'erlang:apply/3`, which sort of
+defeats the purpose of it being an example of the Redis library.
+
+We need to get Listfever modules to the point they clearly illustrate how to
+use Redis in an application without obscure indirections.
+
+Something like this:
+
+#+begin_src erlang
+  -module(user).
+  
+  -export([lookup/1, get_settings/2]).
+  
+  -record(user, {key}).
+  
+  lookup(Id) ->
+      C = redis_connections:acquire(),
+      trye redis:hget(C, "ids:user", Id) of
+          {ok, Key} -> {ok, #user{key=Key}};
+          undefined -> undefined
+      after
+          redis_connections:release(C)
+      end.
+  
+  get_settings(#user{key=Key}) ->
+      C = redis_connections:acquire(),
+      try redis:hgetall(C, "user:" ++ Key ++ ":settings") of
+          Settings -> Settings
+      after
+          redis_connections:release(C)
+      end.
+#+end_src
+
+Here's how you'd use the module:
+
+#+begin_src erlang
+  Email = "someone@somewhere.com",
+  case user:lookup(Email) of
+      {ok, User} ->
+          Settings = user:get_settings(User),
+          io:format("Settings for ~s: ~p~n", [Email, Settings]);
+      undefined ->
+          io:format("User ~s doesn't exit~n", [Email])
+  end
+#+end_src
+
+This follows the "data structure" idiom in Erlang: you use a factory function
+to create a new object (in this case lookup/1, where you pass in some user
+identifier) and then each read/write operation on the value requires that
+value.
+
+This interface hides the fact that we're using Redis. Any data store could in
+theory be used, even a raw Erlang term storage like ETS.
