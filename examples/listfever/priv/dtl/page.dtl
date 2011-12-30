@@ -1,0 +1,28 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+<html>
+<head>
+  <meta http-equiv="content-type" content="text/html; charset=utf-8">
+  <title>{{ title }}</title>
+  <link rel="stylesheet"
+	href="http://yui.yahooapis.com/3.4.1/build/cssreset/cssreset.css"
+	type="text/css">
+  <link rel="stylesheet"
+	href="http://yui.yahooapis.com/3.4.1/build/cssfonts/cssfonts.css"
+	type="text/css">
+  <link rel="stylesheet"
+	href="http://yui.yahooapis.com/3.4.1/build/cssgrids/cssgrids.css"
+	type="text/css">
+  <style>
+  body {
+      margin: auto; /* center in viewport */
+      width: 960px;
+  }
+  </style>
+</head>
+<body>
+{% block body %}{% endblock %}
+</body>
+</html>
+
+
+

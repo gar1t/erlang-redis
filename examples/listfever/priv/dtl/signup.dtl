@@ -1,0 +1,14 @@
+{% extends "page.dtl" %}
+{% block body %}
+<h1>Listfever Sign Up</h1>
+<form action="/signup" method="post">
+  <label for="email">Email:</label>
+  <input type="text" name="email" id="email">
+  <label for="password1">Password:</label>
+  <input type="password" name="password1" id="password1">
+  <label for="password2">Password:</label>
+  <input type="password" name="password2" id="password2">
+  <input type="submit" value="Submit">
+  <input type="reset" value="Reset">
+</form>
+{% endblock %}

@@ -1,0 +1,23 @@
+Listfever is a "clone" of Amazon's Listmania.
+
+I initially tried to write Retwis as an example, but I'm not smart enough to
+understand the Retwis PHP source.
+
+Listfever lets you create lists. Big whoop! Or is it?
+
+In any event, Listfever makes good use of Redis. It also illustrates an 'e2`
+application, which is a full fledged OTP application, but much easier to read
+and write.
+
+* Dependencies
+
+The Listfever application has a number of dependencies, but each plays an
+important role:
+
+ | Dependency | Role                                      |
+ |------------+-------------------------------------------|
+ | e2         | Simplifies the Listfever application code |
+ | modlib     | Light weight web application framework    |
+ | erlydtl    | Django template support                   |
+
+For dependency details, refer to the 'deps' section in rebar.config.

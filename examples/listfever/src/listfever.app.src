@@ -1,0 +1,10 @@
+%%% -*-erlang-*-
+{application, listfever,
+ [{description,
+   "A Simple Twitter clone as a Hello World application for the database"},
+  {vsn, "0.3"},
+  {registered, []},
+  {applications, [kernel, stdlib]},
+  {mod, {e2_application, [listfever]}},
+  {env, []}
+ ]}.
