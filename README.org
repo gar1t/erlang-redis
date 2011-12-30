@@ -38,11 +38,9 @@ use additional "m" (multiple) variants to accomodate (e.g. smadd, mdel, etc).
 
 * Status
 
-Very early stage - bindings are not useful at this time.
+Complete Redis 2.4 API implementation.
 
-However, basic protocol support is in place.
-
-
+Library is not used in production anywhere, but is stable in test environments.
 
 * To Do / Issues
 
@@ -160,3 +158,8 @@ This would be quite simple to implement -- the results would be raw responses
 from the server (i.e. each operation returns a value - errors do not generate
 exceptions).
 
+** Sample applications
+
+A sample "listfever" application is in progress, which will demonstrate how
+Redis can be used to build a full featured application. This app is an analog
+to Retwis -- a Twitter clone -- but clones Amazon's Listmania app instead.
