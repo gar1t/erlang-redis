@@ -17,5 +17,6 @@ doc:
 
 clean:
 	./rebar clean
-shell:
+
+shell: compile
 	 erl -pa ebin -s redis_reloader
