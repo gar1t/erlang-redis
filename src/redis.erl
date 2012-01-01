@@ -1918,7 +1918,7 @@ smove(Client, Source, Destination, Member) ->
 %%
 %% Redis command: [http://redis.io/commands/sort SORT]
 %%
-%% @spec sort(Client, Key) -> [stored_value()]
+%% @spec sort(Client, Key) -> Result
 %% @equiv sort(Client, Key, [])
 %% @end
 %%--------------------------------------------------------------------
@@ -1929,23 +1929,29 @@ sort(Client, Key) ->
 %%--------------------------------------------------------------------
 %% @doc Sorts the values at Key using Options.
 %%
-%% Multiple get options can be provided using {mget, [get()]}.
+%% Multiple get options can be provided using {mget, [get()]}. If
+%% multiple gets are specified, the result contains a list of lists,
+%% each list containing an item corresponding to a get.
 %%
 %% Redis command: [http://redis.io/commands/sort SORT]
 %%
-%% @spec sort(Client, Key, Options) -> [stored_value()]
+%% @spec sort(Client, Key, Options) -> Result
 %% Client = client()
 %% Key = key()
 %% Options = [sort_option()]
 %% sort_option() = {limit, Offset, Count} |
 %%                 asc | desc | alpha |
 %%                 {by, By} | {get, Get}, {mget, Gets} |
-%%                 {store, Store}
+%%                 {store, Store} |
+%%                 nosort
+%% Result = [stored_value() | [stored_value()]]
 %% @end
 %%--------------------------------------------------------------------
 
 sort(Client, Key, Options) ->
-    ?term(redis_client:request(Client, {"SORT", [Key|sort_args(Options)]})).
+    sort_result(
+      ?term(redis_client:request(Client, {"SORT", [Key|sort_args(Options)]})),
+      Options).
 
 %%--------------------------------------------------------------------
 %% @doc Removes and returns a random element from the set value
@@ -2641,6 +2647,8 @@ sort_args([{mget, Gets}|Rest], Acc) ->
     sort_args(Rest, [GetCmds|Acc]);
 sort_args([{store, Dest}|Rest], Acc) ->
     sort_args(Rest, [["STORE", Dest]|Acc]);
+sort_args([nosort|Rest], Acc) ->
+    sort_args(Rest, [["BY", "NOSORT"]|Acc]);
 sort_args([Other|_], _) ->
     error({badarg, Other}).
 
@@ -2652,6 +2660,20 @@ scored_members_args([{Member, Score}|Rest], Acc) when is_number(Score) ->
     scored_members_args(Rest, [[format_number(Score), Member]|Acc]);
 scored_members_args([Other|_], _) ->
     error({badarg, Other}).
+
+sort_result(RawResults, Options) ->
+    case proplists:get_value(mget, Options) of
+        undefined -> RawResults;
+        Gets -> group_sort_results(RawResults, length(Gets))
+    end.
+
+group_sort_results(Results, GroupLen) ->
+    group_sort_results(Results, GroupLen, []).
+
+group_sort_results([], _, Acc) -> lists:reverse(Acc);
+group_sort_results(Results, GroupLen, Acc) ->
+    {Group, Rest} = lists:split(GroupLen, Results),
+    group_sort_results(Rest, GroupLen, [Group|Acc]).
 
 format_number(I) when is_integer(I) -> list_to_binary(integer_to_list(I));
 format_number(F) when is_float(F) -> io_lib:format("~.8f", [F]);
