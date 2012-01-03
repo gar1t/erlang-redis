@@ -3,7 +3,7 @@
 -include_lib("eunit/include/eunit.hrl").
 
 -define(POOL, test).
--define(POOL_SIZE, 5).
+-define(POOL_SIZE, 10).
 -define(CONCURRENT_READ_WRITERS, 100).
 -define(READ_WRITE_COUNT, 10).
 -define(CONCURRENCY_TEST_TIMEOUT, 60).
