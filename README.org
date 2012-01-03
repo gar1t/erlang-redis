@@ -163,3 +163,45 @@ exceptions).
 A sample "listfever" application is in progress, which will demonstrate how
 Redis can be used to build a full featured application. This app is an analog
 to Retwis -- a Twitter clone -- but clones Amazon's Listmania app instead.
+** Connection pools
+
+Most application using Redis will want to maintain long running connections to
+a Redis server. In the case where it makes sense to use multiple long running
+connections, the app needs a pool.
+
+Pool characteristics:
+
+- Actively or lazily create a maximum of N connections
+- Use lock semantics to provide access to a connection from the pool
+- Pool monitors each connection, restarting them on failure
+
+*** Active vs Lazy Connections
+
+I'm inclined to only support active connections, at least initially:
+
+- Deterministic beavior (at least we have a shot at it)
+- Lazy connections introduce higher latency on initial operation
+
+One argument against active connections is a potential stampeed on network or
+server recovery. But a stampeed is also in play for most applications under
+"lazy" as well -- any amount of concurrent traffic will implicitly trigger the
+stampeed.
+
+I think we fix this by introducing a simple rate limiter when establishing new
+connections on startup (optionally).
+
+*** Sequential Connection Attempts
+
+Each pool provides homogenous connections -- i.e. they're all connections to
+the same Redis server using the same credentials.
+
+I think this allows us to simplify the connection strategy -- the pool can be
+filled by connecting sequentially to the server, blocking any subsequent
+connection attempts until the current attempt succeeds.
+
+This rule applies when connections exit -- reconnect attempts should occur in
+seeries, filling in the dropped connections as needed.
+** More tests
+
+The tests in redis_tests are a good start, but there are ~ 10,321 functions to
+test!
