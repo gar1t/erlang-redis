@@ -9,11 +9,12 @@
 
 -define(SERVER, ?MODULE).
 
--record(state, {client_sup, all, free, max, waiters, connect_options}).
+-record(state, {client_sup, all, free, max, waiters, connect, db}).
 
 -define(DEFAULT_RETRY_DELAY, 5000).
 -define(DEFAULT_SIZE, 1).
--define(DEFAULT_CONNECT_OPTIONS, []).
+-define(DEFAULT_CONNECT, []).
+-define(DEFAULT_DATABASE, undefined).
 -define(DEFAULT_ACQUIRE_TIMEOUT, 5000).
 
 %%%===================================================================
@@ -52,6 +53,7 @@ handle_call({acquire, Timeout}, From, State) ->
 
 handle_cast({connect_result, {ok, Connection}}, State0) ->
     State = add_connection(Connection, State0),
+    select_db(Connection, State),
     schedule_next_connect(State),
     {noreply, State};
 handle_cast({connect_result, {error, Err}}, State) ->
@@ -87,17 +89,18 @@ server_name(Pool) ->
 
 init_state(ClientSup, Options) ->
     Max = proplists:get_value(size, Options, ?DEFAULT_SIZE),
-    ConnectOptions = proplists:get_value(connect_options, Options,
-                                         ?DEFAULT_CONNECT_OPTIONS),
+    ConnectOptions = proplists:get_value(
+                       connect, Options, ?DEFAULT_CONNECT),
+    Db = proplists:get_value(database, Options, ?DEFAULT_DATABASE),
     #state{client_sup=ClientSup,
            max=Max,
-           connect_options=ConnectOptions,
+           connect=ConnectOptions,
+           db=Db,
            all=[],
            free=queue:new(),
            waiters=queue:new()}.
 
-try_connect(#state{client_sup=ClientSup,
-                   connect_options=Options}=State) ->
+try_connect(#state{client_sup=ClientSup, connect=Options}=State) ->
     error_logger:info_msg("Connecting to Redis server: ~p~n", [Options]),
     Pool = self(),
     spawn_link(fun() -> try_connect(ClientSup, Options, Pool) end),
@@ -114,7 +117,8 @@ try_connect(Sup, ClientOptions, Pool) ->
 
 try_dispatch(State0) ->
     case next_waiter_and_connection(State0) of
-        {Waiter, Connection, State} ->
+        {{Waiter, TRef}, Connection, State} ->
+            erlang:cancel_timer(TRef),
             gen_server:reply(Waiter, {ok, Connection}),
             State;
         false ->
@@ -122,7 +126,6 @@ try_dispatch(State0) ->
     end.
 
 next_waiter_and_connection(#state{waiters=Waiters0, free=Free0}=State) ->
-io:format("######## ~p~n", [{queue:to_list(Waiters0), queue:to_list(Free0)}]),
     case {queue:out(Waiters0), queue:out(Free0)} of
         {{{value, Waiter}, Waiters}, {{value, Connection}, Free}} ->
             {Waiter, Connection, State#state{waiters=Waiters, free=Free}};
@@ -169,17 +172,17 @@ release_connection(Connection, #state{free=Free, all=All}=State) ->
     end.
 
 add_waiter(Waiter, Timeout, #state{waiters=Waiters}=State) ->
-    erlang:send_after(Timeout, self(), {acquire_timeout, Waiter}),
-    State#state{waiters=queue:in(Waiter, Waiters)}.
+    TRef = erlang:send_after(Timeout, self(), {acquire_timeout, Waiter}),
+    State#state{waiters=queue:in({Waiter, TRef}, Waiters)}.
 
 remove_waiter(Waiter, #state{waiters=Waiters}=State) ->
-    State#state{waiters=queue_del(Waiter, Waiters)}.
+    State#state{waiters=queue_keydelete(Waiter, 1, Waiters)}.
 
 schedule_dispatch() ->
     erlang:send(self(), dispatch).
 
-queue_del(Item, Q) ->
-    case queue:member(Item, Q) of
-        true -> queue:from_list(lists:delete(Item, queue:to_list(Q)));
-        false -> Q
-    end.
+queue_keydelete(Item, N, Queue) ->
+    queue:from_list(lists:keydelete(Item, N, queue:to_list(Queue))).
+
+select_db(_Connection, #state{db=undefined}) -> ok;
+select_db(Connection, #state{db=N}) -> redis:select(Connection, N).
