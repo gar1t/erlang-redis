@@ -20,7 +20,8 @@
 
 -include("redis.hrl").
 
--export([connect/0, connect/1,
+-export([start/0,
+         connect/0, connect/1,
          append/3,
          auth/2,
          bgrewriteaof/1,
@@ -196,6 +197,9 @@
 %%%===================================================================
 %%% Public API
 %%%===================================================================
+
+start() ->
+    application:start(redis).
 
 %%--------------------------------------------------------------------
 %% @doc Connect to a locally running Redis server.

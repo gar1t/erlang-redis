@@ -2,14 +2,14 @@
 
 -behaviour(gen_server).
 
--export([start_link/2, start_link/3, acquire/1, acquire/2, release/2]).
+-export([start_link/1, start_link/2, acquire/1, acquire/2, release/2]).
 
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2,
          terminate/2, code_change/3]).
 
 -define(SERVER, ?MODULE).
 
--record(state, {client_sup, all, free, max, waiters, connect, db}).
+-record(state, {all, free, max, waiters, connect, db}).
 
 -define(DEFAULT_RETRY_DELAY, 5000).
 -define(DEFAULT_SIZE, 1).
@@ -21,12 +21,12 @@
 %%% API
 %%%===================================================================
 
-start_link(ClientSup, Options) ->
-    gen_server:start_link(?MODULE, [ClientSup, Options], []).
+start_link(Options) ->
+    gen_server:start_link(?MODULE, [Options], []).
 
-start_link(PoolName, ClientSup, Options) ->
+start_link(PoolName, Options) ->
     gen_server:start_link(
-      {local, server_name(PoolName)}, ?MODULE, [ClientSup, Options], []).
+      {local, server_name(PoolName)}, ?MODULE, [Options], []).
 
 acquire(Pool) ->
     gen_server:call(
@@ -42,8 +42,9 @@ release(Pool, Connection) ->
 %%% gen_server callbacks
 %%%===================================================================
 
-init([ClientSup, Options]) ->
-    State = init_state(ClientSup, Options),
+init([Options]) ->
+    process_flag(trap_exit, true),
+    State = init_state(Options),
     schedule_connect(State),
     {ok, State}.
 
@@ -70,9 +71,10 @@ handle_info(dispatch, State) ->
 handle_info({acquire_timeout, Waiter}, State) ->
     gen_server:reply(Waiter, timeout),
     {noreply, remove_waiter(Waiter, State)};
-handle_info({'DOWN', _Ref, process, Connection, _Info}, State) ->
+handle_info({'EXIT', Connection, Reason}, State0) ->
+    State = remove_connection(Connection, Reason, State0),
     schedule_next_connect(State),
-    {noreply, remove_connection(Connection, State)}.
+    {noreply, State}.
 
 terminate(_Reason, _State) ->
     ok.
@@ -87,27 +89,26 @@ code_change(_OldVsn, State, _Extra) ->
 server_name(Pool) ->
     list_to_atom("redis_pool_" ++ atom_to_list(Pool)).
 
-init_state(ClientSup, Options) ->
+init_state(Options) ->
     Max = proplists:get_value(size, Options, ?DEFAULT_SIZE),
     ConnectOptions = proplists:get_value(
                        connect, Options, ?DEFAULT_CONNECT),
     Db = proplists:get_value(database, Options, ?DEFAULT_DATABASE),
-    #state{client_sup=ClientSup,
-           max=Max,
+    #state{max=Max,
            connect=ConnectOptions,
            db=Db,
            all=[],
            free=queue:new(),
            waiters=queue:new()}.
 
-try_connect(#state{client_sup=ClientSup, connect=Options}=State) ->
+try_connect(#state{connect=Options}=State) ->
     error_logger:info_msg("Connecting to Redis server: ~p~n", [Options]),
     Pool = self(),
-    spawn_link(fun() -> try_connect(ClientSup, Options, Pool) end),
+    spawn(fun() -> try_connect(Options, Pool) end),
     State.
 
-try_connect(Sup, ClientOptions, Pool) ->
-    try redis_client_sup:start_connection(Sup, ClientOptions) of
+try_connect(ClientOptions, Pool) ->
+    try redis_client_sup:start_connection(ClientOptions) of
         Result -> notify_connect(Pool, Result)
     catch
         T:E ->
@@ -146,20 +147,21 @@ schedule_next_connect(State) ->
 
 schedule_connect_retry(_State) ->
     Time = ?DEFAULT_RETRY_DELAY,
-    error_logger:info_msg("Retrying connection in ~b millis~n", [Time]),
+    error_logger:info_msg(
+      "Retrying connection in ~b seconds~n", [Time div 1000]),
     erlang:send_after(Time, self(), connect).
 
 pool_full(#state{max=Max, all=Connections}) ->
     length(Connections) >= Max.
 
 add_connection(Connection, #state{all=All, free=Free}=State) ->
-    erlang:monitor(process, Connection),
+    link(Connection),
     error_logger:info_msg("Connection added to pool~n"),
     schedule_dispatch(),
     State#state{all=[Connection|All], free=queue:in(Connection, Free)}.
 
-remove_connection(Connection, #state{all=All}=State) ->
-    error_logger:info_msg("Removing connection from pool~n"),
+remove_connection(Connection, Reason, #state{all=All}=State) ->
+    error_logger:info_msg("Removing connection from pool (~p)~n", [Reason]),
     State#state{all=lists:delete(Connection, All)}.
 
 release_connection(Connection, #state{free=Free, all=All}=State) ->

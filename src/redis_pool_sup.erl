@@ -11,10 +11,11 @@
 %%%===================================================================
 
 start_link(PoolName) ->
-    supervisor:start_link(?MODULE, [PoolName]).
+    start_link(PoolName, []).
 
 start_link(PoolName, Options) ->
-    supervisor:start_link(?MODULE, [PoolName, Options]).
+    supervisor:start_link(
+      {local, sup_name(PoolName)}, ?MODULE, [PoolName, Options]).
 
 %%%===================================================================
 %%% Supervisor callbacks
@@ -23,15 +24,16 @@ start_link(PoolName, Options) ->
 init([PoolName]) ->
     init([PoolName, pool_config_options(PoolName)]);
 init([PoolName, PoolOptions]) ->
-    ClientSup = client_sup_name(PoolName),
     {ok, {{one_for_all, 5, 5},
-          [{client_sup, {redis_client_sup, start_link, [ClientSup]},
-            permanent, brutal_kill, supervisor, [redis_client_sup]},
-           {pool, {redis_pool, start_link, [PoolName, ClientSup, PoolOptions]},
+          [{pool, {redis_pool, start_link, [PoolName, PoolOptions]},
             permanent, brutal_kill, worker, [redis_pool]}]}}.
 
-client_sup_name(Pool) ->
-    list_to_atom("redis_client_sup_" ++ atom_to_list(Pool)).
+%%%===================================================================
+%%% Internal functions
+%%%===================================================================
+
+sup_name(PoolName) ->
+    list_to_atom("redis_pool_sup_" ++ atom_to_list(PoolName)).
 
 pool_config_options(Name) ->
     case application:get_env(Name) of

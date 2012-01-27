@@ -2,26 +2,17 @@
 
 -behaviour(supervisor).
 
--export([start_link/0, start_link/1, start_connection/2]).
+-export([start_link/0, start_connection/1]).
 
 -export([init/1]).
 
-%%%===================================================================
-%%% API functions
-%%%===================================================================
+-define(SERVER, ?MODULE).
 
 start_link() ->
-    supervisor:start_link(?MODULE, []).
+    supervisor:start_link({local, ?SERVER}, ?MODULE, []).
 
-start_link(Name) ->
-    supervisor:start_link({local, Name}, ?MODULE, []).
-
-start_connection(Sup, Options) ->
-    supervisor:start_child(Sup, [Options]).
-
-%%%===================================================================
-%%% Supervisor callbacks
-%%%===================================================================
+start_connection(Options) ->
+    supervisor:start_child(?SERVER, [Options]).
 
 init([]) ->
     {ok, {{simple_one_for_one, 1, 1},
