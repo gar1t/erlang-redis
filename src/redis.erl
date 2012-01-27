@@ -11,7 +11,7 @@
 %%% @type stored_value() = binary()
 %%% @type stored_key() = binary()
 %%% @type stored_field() = binary()
-%%% @type scored_member() = {Member, Score}
+%%% @type scored_member() = {Score, Member}
 %%% @type score() = number()
 %%% @type member() = value()
 %%% @type aggregate() = [min | max | sum]
@@ -141,6 +141,7 @@
          watch/2,
          zmadd/3,
          zadd/3,
+         zadd/4,
          zcard/2,
          zcount/4,
          zincrby/4,
@@ -2157,12 +2158,26 @@ zmadd(Client, Key, Members) when length(Members) > 0 ->
 %%
 %% Redis command: [http://redis.io/commands/zadd ZADD]
 %%
-%% @spec zadd(Client, Key, {Member, Score}) -> integer()
-%% @equiv zmadd(Client, Key, [{Member, Score}])
+%% @spec zadd(Client, Key, {Score, Member}) -> integer()
+%% @equiv zmadd(Client, Key, [{Score, Score}])
 %% @end
 %%--------------------------------------------------------------------
 
-zadd(Client, Key, {Member, Score}) ->
+zadd(Client, Key, {Score, Member}) ->
+    zmadd(Client, Key, [{Score, Member}]).
+
+%%--------------------------------------------------------------------
+%% @doc Adds the specified member with the specified score to the
+%% sorted set stored at Key.
+%%
+%% Redis command: [http://redis.io/commands/zadd ZADD]
+%%
+%% @spec zadd(Client, Key, Score, Member) -> integer()
+%% @equiv zmadd(Client, Key, [{Score, Member}])
+%% @end
+%%--------------------------------------------------------------------
+
+zadd(Client, Key, Score, Member) ->
     zmadd(Client, Key, [{Score, Member}]).
 
 %%--------------------------------------------------------------------
@@ -2656,7 +2671,7 @@ scored_members_args(Members) ->
     scored_members_args(Members, []).
 
 scored_members_args([], Acc) -> lists:concat(lists:reverse(Acc));
-scored_members_args([{Member, Score}|Rest], Acc) when is_number(Score) ->
+scored_members_args([{Score, Member}|Rest], Acc) when is_number(Score) ->
     scored_members_args(Rest, [[format_number(Score), Member]|Acc]);
 scored_members_args([Other|_], _) ->
     error({badarg, Other}).
