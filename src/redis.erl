@@ -361,7 +361,8 @@ del(Client, Key) ->
 %% @end
 %%--------------------------------------------------------------------
 
-mdel(Client, Keys) when length(Keys) > 0 ->
+mdel(_Client, []) -> 0;
+mdel(Client, Keys) ->
     ?term(redis_client:request(Client, {"DEL", Keys})).
 
 %%--------------------------------------------------------------------
