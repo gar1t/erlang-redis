@@ -24,4 +24,4 @@ clean:
 	./rebar clean
 
 shell: compile
-	 erl -pa ebin -s redis_reloader
+	 erl -pa ebin -s redis_reloader -s redis
