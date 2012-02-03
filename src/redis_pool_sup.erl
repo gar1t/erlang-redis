@@ -11,7 +11,7 @@
 %%%===================================================================
 
 start_link(PoolName) ->
-    start_link(PoolName, []).
+    start_link(PoolName, '$appenv').
 
 start_link(PoolName, Options) ->
     supervisor:start_link(
@@ -21,8 +21,8 @@ start_link(PoolName, Options) ->
 %%% Supervisor callbacks
 %%%===================================================================
 
-init([PoolName]) ->
-    init([PoolName, pool_config_options(PoolName)]);
+init([PoolName, '$appenv']) ->
+    init([PoolName, app_env(PoolName)]);
 init([PoolName, PoolOptions]) ->
     {ok, {{one_for_all, 5, 5},
           [{pool, {redis_pool, start_link, [PoolName, PoolOptions]},
@@ -35,8 +35,10 @@ init([PoolName, PoolOptions]) ->
 sup_name(PoolName) ->
     list_to_atom("redis_pool_sup_" ++ atom_to_list(PoolName)).
 
-pool_config_options(Name) ->
-    case application:get_all_env(Name) of
-        {ok, Options} -> Options;
+app_env(Name) ->
+    case application:get_env(Name) of
+        {ok, Opts} -> Opts;
         undefined -> []
     end.
+
+
