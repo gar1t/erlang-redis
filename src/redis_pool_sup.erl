@@ -36,7 +36,7 @@ sup_name(PoolName) ->
     list_to_atom("redis_pool_sup_" ++ atom_to_list(PoolName)).
 
 pool_config_options(Name) ->
-    case application:get_env(Name) of
+    case application:get_all_env(Name) of
         {ok, Options} -> Options;
         undefined -> []
     end.
