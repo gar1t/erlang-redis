@@ -643,7 +643,7 @@ srem(Client, Key, Member) ->
 %%--------------------------------------------------------------------
 
 smrem(Client, Key, Members) ->
-    ?bool(redis_client:request(Client, {"SREM", [Key|Members]})).
+    ?term(redis_client:request(Client, {"SREM", [Key|Members]})).
 
 %%--------------------------------------------------------------------
 %% @doc Returns true if Member is a part of a set, otherwise returns
