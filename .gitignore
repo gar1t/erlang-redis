@@ -3,3 +3,4 @@ ebin
 doc
 deps
 erl_crash.dump
+dump.rdb
