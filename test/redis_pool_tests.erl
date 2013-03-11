@@ -9,6 +9,7 @@
 -define(CONCURRENCY_TEST_TIMEOUT, 60).
 
 init_pool() ->
+    redis:start(),
     {ok, PoolSup} = redis_pool_sup:start_link(?POOL, [{size, ?POOL_SIZE}]),
     {PoolSup, redis_tests:get_test_db()}.
 

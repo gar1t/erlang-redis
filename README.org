@@ -2,6 +2,15 @@
 
 erlang-redis is an Erlang binding for Redis.
 
+To get started, run the tests as follows:
+
+1. Start a local redis server
+
+2. Run tests with a test DB (0, 1, etc.) - the tests write to the database, so
+   use a non-production database!
+
+  $ make TESTDB=5 test
+
 * Goals
 
 - Bug free
