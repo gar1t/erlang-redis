@@ -17,7 +17,7 @@ else
 endif
 
 .PHONY: doc
-doc:
+doc: compile
 	./rebar doc
 
 clean:
