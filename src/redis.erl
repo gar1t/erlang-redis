@@ -2,7 +2,6 @@
 %%% @doc API module for Redis.
 %%%
 %%% @type client() = pid()
-%%% @type iolist() = binary() | string()
 %%% @type key() = iolist()
 %%% @type field() = iolist()
 %%% @type channel() = iolist()
@@ -1244,7 +1243,10 @@ flushall(Client) ->
 %%
 %% Redis command: [http://redis.io/commands/getbit GETBIT]
 %%
-%% @spec getbit(Client) -> 0 | 1
+%% @spec getbit(Client, Key, Offset) -> 0 | 1
+%% Client = client()
+%% Key = key()
+%% Offset = integer()
 %% @end
 %%--------------------------------------------------------------------
 
@@ -1555,7 +1557,7 @@ mset(Client, KeyValues) ->
 %%
 %% Redis command: [http://redis.io/commands/msetnx MSETNX]
 %%
-%% @spec mset(Client, KeyValues) -> boolean
+%% @spec msetnx(Client, KeyValues) -> boolean()
 %% Client = client()
 %% KeyValues = [{key(), value()}]
 %% @end
@@ -1648,7 +1650,7 @@ publish(Client, Channel, Message) ->
 %%
 %% Redis command: [http://redis.io/commands/punsubscribe PUNSUBSCRIBE]
 %%
-%% @spec punsubscribe(Client, Patterns) -> ok
+%% @spec punsubscribe(Client) -> ok
 %% Client = client()
 %% @end
 %%--------------------------------------------------------------------
@@ -1948,7 +1950,7 @@ sort(Client, Key) ->
 %% Options = [sort_option()]
 %% sort_option() = {limit, Offset, Count} |
 %%                 asc | desc | alpha |
-%%                 {by, By} | {get, Get}, {mget, Gets} |
+%%                 {by, By} | {get, Get} | {mget, Gets} |
 %%                 {store, Store} |
 %%                 nosort
 %% Result = [stored_value() | [stored_value()]]
@@ -2036,7 +2038,7 @@ sunion(Client, SetKeys) when length(SetKeys) > 1 ->
 %%
 %% Redis command: [http://redis.io/commands/sunionstore SUNIONSTORE]
 %%
-%% @spec sdiffstore(Client, Destination, SetKeys) -> integer()
+%% @spec sunionstore(Client, Destination, SetKeys) -> integer()
 %% Client = client()
 %% Destination = key()
 %% SetKeys = [key()]
@@ -2147,7 +2149,7 @@ watch(Client, Keys) when length(Keys) > 0 ->
 %%
 %% Redis command: [http://redis.io/commands/zadd ZADD]
 %%
-%% @spec zadd(Client, Key, Members) -> integer()
+%% @spec zmadd(Client, Key, Members) -> integer()
 %% Client = client()
 %% Key = key()
 %% Members = [scored_member()]
@@ -2442,8 +2444,8 @@ zremrangebyscore(Client, Key, Min, Max) ->
 %%
 %% Redis command: [http://redis.io/commands/zrevrange ZREVRANGE]
 %%
-%% @spec zrevrange(Client, Key, Start, Stop, Options) -> Result
-%% @equiv zrevrange(Client, Key, Start, Stop, []).
+%% @spec zrevrange(Client, Key, Start, Stop) -> Result
+%% @equiv zrevrange(Client, Key, Start, Stop, [])
 %% @end
 %%--------------------------------------------------------------------
 
@@ -2480,7 +2482,7 @@ zrevrange(Client, Key, Start, Stop, Options) ->
 %%
 %% Redis command: [http://redis.io/commands/zrevrangebyscore ZREVRANGEBYSCORE]
 %%
-%% @spec zrevrangebyscore(Client, Key, Max, Min, Options) -> Result
+%% @spec zrevrangebyscore(Client, Key, Max, Min) -> Result
 %% @equiv zrevrangebyscore(Client, Key, Max, Min, [])
 %% @end
 %%--------------------------------------------------------------------
