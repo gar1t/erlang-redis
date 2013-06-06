@@ -21,6 +21,7 @@
 
 -export([start/0,
          connect/0, connect/1,
+         connect_link/0, connect_link/1,
          append/3,
          auth/2,
          bgrewriteaof/1,
@@ -203,7 +204,7 @@ start() ->
 
 %%--------------------------------------------------------------------
 %% @doc Connect to a locally running Redis server.
-%% @spec connect() -> {ok, Client}  | {error, Reason}
+%% @spec connect() -> {ok, Client} | {error, Reason}
 %% @equiv connect([])
 %% @end
 %%--------------------------------------------------------------------
@@ -227,6 +228,36 @@ connect() ->
 %%--------------------------------------------------------------------
 
 connect(Options) ->
+    redis_client:start(Options).
+
+%%--------------------------------------------------------------------
+%% @doc Connect to a locally running Redis server, linking the client
+%% process and the calling process.
+%% @spec connect_link() -> {ok, Client} | {error, Reason}
+%% @equiv connect_link([])
+%% @end
+%%--------------------------------------------------------------------
+
+connect_link() ->
+    connect_link([]).
+
+%%--------------------------------------------------------------------
+%% @doc Connect to a host running Redis using the specified options,
+%% linking the client process and the calling process.
+%% @spec connect_link(Options) -> {ok, Client} | {error, Reason}
+%% Options = [connect_option()]
+%% connect_option() = {host, Host} |
+%%                    {port, Port} |
+%%                    {recipient, Recipient}
+%% Host = string()
+%% Port = port()
+%% Recipient = function() | MFA | pid()
+%% MFA = {atom(), atom(), [term()]}
+%% Client = client()
+%% @end
+%%--------------------------------------------------------------------
+
+connect_link(Options) ->
     redis_client:start_link(Options).
 
 %%--------------------------------------------------------------------

@@ -4,7 +4,7 @@
 
 -behaviour(gen_server).
 
--export([start_link/1, request/2, request/3, quit/1, quit/2]).
+-export([start/1, start_link/1, request/2, request/3, quit/1, quit/2]).
 
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2,
          terminate/2, code_change/3]).
@@ -18,6 +18,9 @@
 %%%===================================================================
 %%% API
 %%%===================================================================
+
+start(Options) ->
+    gen_server:start(?MODULE, [self(), Options], []).
 
 start_link(Options) ->
     gen_server:start_link(?MODULE, [self(), Options], []).
