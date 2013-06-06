@@ -59,9 +59,6 @@ handle_call({get, Key}, _From, State) ->
 handle_info(connect, State) ->
     handle_connect(State).
 
-terminate(Reason, State) ->
-    handle_terminate(Reason, State).
-
 %%%===================================================================
 %%% Connection state management
 %%%===================================================================
@@ -116,7 +113,7 @@ handle_get(Key, #state{db=Db}=State) ->
 handle_cast(_Msg, State) ->
     {noreply, State}.
 
-handle_terminate(_Reason, _State) ->
+terminate(_Reason, _State) ->
     ok.
 
 code_change(_OldVsn, State, _Extra) ->
