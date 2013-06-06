@@ -1,0 +1,9 @@
+%%% -*-erlang-*-
+{application, dbservice,
+ [{description, "Sample to illustrate a DB service interface"},
+  {vsn, "0.1"},
+  {registered, []},
+  {applications, [kernel, stdlib, redis]},
+  {mod, {dbservice_app, []}},
+  {env, []}
+ ]}.
