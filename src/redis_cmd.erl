@@ -12,19 +12,10 @@ call(Socket, Cmd, Args) ->
 
 send(Socket, Cmd, Args) ->
     SendArgs = [Cmd|Args],
-    case gen_tcp:send(Socket, ["*", arg_count(SendArgs), ?CRLF]) of
-        ok ->
-            send_args(Socket, SendArgs);
-        {error, Err} ->
-            {error, Err}
-    end.
-
-send_args(_Socket, []) -> ok;
-send_args(Socket, [Arg|Rest]) -> 
-    case gen_tcp:send(Socket, ["\$", arg_size(Arg), ?CRLF, Arg, ?CRLF]) of
-        ok -> send_args(Socket, Rest);
-        {error, Err} -> {error, Err}
-    end.
+    Header = ["*", arg_count(SendArgs), ?CRLF],
+    Body = [ ["\$", arg_size(Arg), ?CRLF, Arg, ?CRLF] || Arg <- SendArgs ],
+    Request = [Header, Body],
+    gen_tcp:send(Socket, Request).
 
 arg_count(Args) ->
     integer_to_list(length(Args)).
@@ -39,5 +30,5 @@ recv(Socket, Reply) ->
     case gen_tcp:recv(Socket, 0) of
         {ok, Data} -> redis_reply:data(Data, Reply);
         {error, Err} -> {error, Err}
-    end.    
+    end.
 
