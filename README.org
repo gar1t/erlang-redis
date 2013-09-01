@@ -72,7 +72,7 @@ might be better way to clarify the difference between "there's a value here,
 but it's not specified -- it's nil, undefined, etc." and "the key you requested
 doesn't exist".
 
-** Incongruence bewteen get results and list values
+** Incongruence between get results and list values
 
 A value from a `get' operation is {ok, Value} whereas a missing value is
 undefined. Values in list results however are just Value, with undefined also
